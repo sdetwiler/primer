@@ -1,0 +1,4 @@
+beautifulsoup4
+requests==2.2.1
+Pillow
+# mwlib # Will fail on OS X if this was not run first: # STATIC_DEPS=true pip install lxml
