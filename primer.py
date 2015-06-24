@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 import logging
 import logging.config
 import argparse
@@ -20,24 +20,57 @@ from mwlib.refine import core, compat
 
 import StringIO
 
-base_url = "https://www.wikipedia.org/wiki/"
-
-
 logger = logging.getLogger("piratestudios.primer")
 
 
 class Client():
     def __init__(self):
-        pass
-    def parse_url(self, url):
-        response = requests.get(url)
-        # article = self.parse_html(response.text)
-        article = self.parse_markup_from_html(response.text)
-        article["url"] = url
-        return article
+        self.content = []
+
+
+    def get_article(self, topic):
+        cacheDir = "./json_cache"
+        try:
+            os.mkdir(cacheDir)
+        except:
+            pass
+            
+        filename = "{}/{}".format(cacheDir, topic)
+        if os.path.isfile(filename):
+            print "cache hit for " + topic
+            js = open(filename).read()
+        else:
+            markup = self.get_markup_for_topic(topic)
+            article = compat.parse_txt(markup)
+            self.reset()
+            self.depth_first(article)
+        
+            obj = {"content":self.content, "title":topic, "url":"https://en.wikipedia.org/wiki/{}".format(topic), "url":"https://en.wikipedia.org/wiki/{}".format(topic)}
+            js = json.dumps(obj, indent=2)
+            
+            open(filename, "w").write(js)
+        return js
+
+    def get_media_for_article(self, topic):
+        media = []
+        try:
+            client = Client()
+            markup = self.get_markup_for_topic(topic)
+            article = compat.parse_txt(markup)
+            self.depth_find_media(article, media)
+            print "toplc: " + topic
+            print media
+        except:
+            pass
+
+        return media
 
     def url_from_image_link(self, link):
-        link = link[5:] # remove File:
+        print link
+        if link.startswith("File:"):
+            link = link[5:] # remove File:
+        elif link.startswith("Image:"):
+            link = link[6:] # remove Image:
         link = link.replace(" ", "_")
         import hashlib
         h = hashlib.md5()
@@ -47,8 +80,42 @@ class Client():
         
         return "https://upload.wikimedia.org/wikipedia/commons/{}/{}/{}".format(hashstring[0], hashstring[0:2], link)
 
-    def depth_first(self, node, depth=0):
+    def contentType_for_file(self, file):
+        if file.endswith("jpg") or file.endswith("jpeg"):
+            return "image/jpeg"
+
+        if file.endswith("png"):
+            return "image/png"
+
+        if file.endswith("gif"):
+            return "image/gif"
+
+        if file.endswith("svg"):
+            return "image/svg+xml"
+
+        if file.endswith("ogg"):
+            return "audio/ogg"
+
+        return None
+
+
+    def depth_find_media(self, node, media=[], depth=0):
+        if type(node) == ImageLink:
+            url = self.url_from_image_link(node.target)
+            contentType = self.contentType_for_file(url)
+            if contentType is not None:
+                media.append({"url":url, "contentType":contentType})
+
+        if len(media) < 3:
+            for c in node.children:
+                self.depth_find_media(c, media, depth+1)
+            
+
+    def reset(self):
+        self.find_media = True
+        self.block = {"text":"", "media":[]}
         
+    def depth_first(self, node, depth=0):
         # Magic node type signaling end of paragraph.
         if node.type == 21:
             self.block["text"] = self.block["text"].strip()
@@ -60,13 +127,19 @@ class Client():
                 # print "end##"
                 
             # Reset the current block
-            self.block = {"text":"", "media":[]}
+            self.reset()
             
         if type(node) == ArticleLink:
             # print "link: {} {} {}".format(type(node), node.target, node.children)
             # If there are no children, use the target as the text, otherwise rely on the children to add the text.
             if len(node.children) == 0:
                 self.block["text"]+= node.target
+
+            if self.find_media == True:
+                media = self.get_media_for_article(node.target)
+                if len(media) > 0:
+                    self.block["media"].append(media[0])
+                    self.find_media = False
 
         elif type(node) == ImageLink:
             # print "ImageLink: {}".format(node.target)
@@ -79,29 +152,49 @@ class Client():
             
         elif type(node) == Text:# node.text and len(node.text) > 0:
             # print "{} {} {}".format("text", type(node), node.text)
-            self.block["text"]+= "{}".format(node.text)
-        else:
-            print "{} {}".format("unknown", type(node))
+            text = node.text
+            # A sentence ended, so start looking for media again.
+            if "." in text:
+                self.find_media = True
+            self.block["text"]+= "{}".format(text)
 
-        # print node
+        # else:
+        #     print "{} {}".format("unknown", type(node))
+
         for c in node.children:
             self.depth_first(c, depth+1)
 
-    def parse_markup_from_html(self, html):
-        res = {}
 
-        self.content = []
-        self.block = {"text":"", "media":[]}
+    def get_markup_for_topic(self, topic):
+        url = "https://en.wikipedia.org/w/index.php?title={}&action=edit".format(topic)
 
-
-        soup = BeautifulSoup(html)
-        title = soup.find("title")
-        res["title"] = title.get_text()
+        cacheDir = "./markup_cache"
+        try:
+            os.mkdir(cacheDir)
+        except:
+            pass
+            
+        filename = "{}/{}".format(cacheDir, topic)
+        if os.path.isfile(filename):
+            print "cache hit for " + topic
+            markup = open(filename).read()
+        else:
+            response = requests.get(url, timeout=2.0)
+            markup = self.get_markup_from_html(response.text)
+            
+            open(filename, "w").write(markup)
+        return markup
         
+    def get_markup_from_html(self, html):
+        soup = BeautifulSoup(html)
         textarea = soup.find("textarea")
         markup = textarea.contents[0]
+        return markup
 
+    def parse_markup_from_html(self, html):
+        self.reset()
 
+        markup = self.get_markup_from_html(html)
 
         article = compat.parse_txt(markup)
         self.depth_first(article)
@@ -161,9 +254,7 @@ class Client():
 
 def get_article(topic):
     client = Client()
-    url = "https://en.wikipedia.org/w/index.php?title={}&action=edit".format(topic)
-    article = client.parse_url(url)
-    article["url"] = "https://en.wikipedia.org/wiki/{}".format(topic)
+    article = client.get_article(topic)
 
     return article
     
@@ -176,13 +267,13 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
         else:
             topic = self.path[1:]
-            print topic
+            # print topic
             article = get_article(topic)
-            print json.dumps(article, indent=2)
+            print article
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps(article))
+            self.wfile.write(article)
         
 
 def main():    
@@ -231,10 +322,10 @@ def main():
 
     if args.article is not None:    
         article = get_article(args.article)
-        print json.dumps(article, indent=2)
+        print article
 
         if args.file:
-            open(args.article + ".json", "w").write(txt)
+            open(args.article + ".json", "w").write(article)
 
     if args.server is True:
         PORT = 8000
