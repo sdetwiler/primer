@@ -13,6 +13,20 @@
 <style>a:lang(ar),a:lang(kk-arab),a:lang(mzn),a:lang(ps),a:lang(ur){text-decoration:none}
 /* cache key: enwiki:resourceloader:filter:minify-css:7:3904d24a08aa08f6a68dc338f9be277e */</style>
 <!--[if lt IE 7]><style type="text/css">body{behavior:url("/w/static/1.26wmf10/skins/Vector/csshover.min.htc")}</style><![endif]-->
+	
+	<style>
+	#nav
+	{
+		display:none;
+	}
+	
+	#spinner
+	{
+		display:none
+	}
+	
+	</style>
+	
 	<script>
 	
 	var wwi = {
@@ -346,12 +360,21 @@
 	function search()
 	{
 		var f = document.getElementById("f");
+		var spinner = document.getElementById("spinner");
+
 		var q = document.getElementById("q");
 		f.style.display = "none";
+		spinner.style.display = "block";
+
 		var req = new XMLHttpRequest();
 		req.onload = function() {
 			console.log("onload");
 			json = JSON.parse(this.responseText);
+			
+			spinner.style.display = "none";
+			var nav = document.getElementById("nav");
+			nav.style.display = "block";
+			
 			play(json);
 //			Hand built test dataset.
 			// play(wwi);
@@ -387,8 +410,11 @@
 <form onsubmit="return search()" id="f">
 	Name a topic: <input type="text" id="q">
 </form>
+<img id="spinner" src="/assets/spinner.gif">
+<div id="nav">
 <input type="button" onclick="goPrevious()" value="&lt;">
-<input type="button" onclick="goNext()" value="&gt;"><br>
+<input type="button" onclick="goNext()" value="&gt;">
+</div>
 						<img id="image" style="max-width:100%; max-height:100%;">
 						
 					</p>

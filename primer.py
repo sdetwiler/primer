@@ -265,6 +265,9 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         if self.path == '/':
             self.path = '/index.html'
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+        elif self.path.startswith("/assets/"):
+            return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+            
         else:
             topic = self.path[1:]
             # print topic
