@@ -13,6 +13,13 @@ from bs4 import BeautifulSoup
 import SimpleHTTPServer
 import SocketServer
 
+from mwlib import wiki
+# import mwlib.parser.nodes
+from mwlib.parser.nodes import *
+from mwlib.refine import core, compat
+
+import StringIO
+
 base_url = "https://www.wikipedia.org/wiki/"
 
 
@@ -22,22 +29,85 @@ logger = logging.getLogger("piratestudios.primer")
 class Client():
     def __init__(self):
         pass
-        
     def parse_url(self, url):
         response = requests.get(url)
-        article = self.parse_html(response.text)
+        # article = self.parse_html(response.text)
+        article = self.parse_markup_from_html(response.text)
         article["url"] = url
         return article
 
+    def url_from_image_link(self, link):
+        link = link[5:] # remove File:
+        link = link.replace(" ", "_")
+        import hashlib
+        h = hashlib.md5()
+        h.update(link)
+        hashstring = h.hexdigest()
+        # print hashstring
+        
+        return "https://upload.wikimedia.org/wikipedia/commons/{}/{}/{}".format(hashstring[0], hashstring[0:2], link)
 
-    def parse_summary(self, html):
-        # Find tables for sidebar images
-        tables = div.findAll("table")
-        for t in tables:
-            images = t.findAll("img")
-            for i in images:
-                print i["src"]
+    def depth_first(self, node, depth=0):
+        
+        # Magic node type signaling end of paragraph.
+        if node.type == 21:
+            self.block["text"] = self.block["text"].strip()
+            # if there is text that isn't a template reference or if there is media, add the block
+            if (len(self.block["text"]) and self.block["text"][0] is not "{") or len(self.block["media"]):
+                self.content.append(self.block)
+                # print "##start"
+                # print self.block["text"]
+                # print "end##"
+                
+            # Reset the current block
+            self.block = {"text":"", "media":[]}
+            
+        if type(node) == ArticleLink:
+            # print "link: {} {} {}".format(type(node), node.target, node.children)
+            # If there are no children, use the target as the text, otherwise rely on the children to add the text.
+            if len(node.children) == 0:
+                self.block["text"]+= node.target
 
+        elif type(node) == ImageLink:
+            # print "ImageLink: {}".format(node.target)
+            
+            url = self.url_from_image_link(node.target)
+            
+            self.block["media"].append({"url":url, "contentType":"image/jpeg"})
+            # Drop children of images to supress possible captions.
+            node.children = []
+            
+        elif type(node) == Text:# node.text and len(node.text) > 0:
+            # print "{} {} {}".format("text", type(node), node.text)
+            self.block["text"]+= "{}".format(node.text)
+        else:
+            print "{} {}".format("unknown", type(node))
+
+        # print node
+        for c in node.children:
+            self.depth_first(c, depth+1)
+
+    def parse_markup_from_html(self, html):
+        res = {}
+
+        self.content = []
+        self.block = {"text":"", "media":[]}
+
+
+        soup = BeautifulSoup(html)
+        title = soup.find("title")
+        res["title"] = title.get_text()
+        
+        textarea = soup.find("textarea")
+        markup = textarea.contents[0]
+
+
+
+        article = compat.parse_txt(markup)
+        self.depth_first(article)
+            
+        return {"content":self.content, "title":""}
+     
 
     def parse_html(self, html):
         article = {}
@@ -53,7 +123,7 @@ class Client():
 
         for c in div.contents:
             # print c.name
-            if c.name == "h3" || (c.name == "p" && len(content) == 0):
+            if (c.name == "h3") or (c.name == "p" and len(content) == 0):
                 block = { "media":[], "text":"" }
                 paragraphs = []
                 for sib in c.previous_siblings:
@@ -89,6 +159,14 @@ class Client():
         return s
 
 
+def get_article(topic):
+    client = Client()
+    url = "https://en.wikipedia.org/w/index.php?title={}&action=edit".format(topic)
+    article = client.parse_url(url)
+    article["url"] = "https://en.wikipedia.org/wiki/{}".format(topic)
+
+    return article
+    
 
 class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -99,18 +177,19 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         else:
             topic = self.path[1:]
             print topic
-            
-            client = Client()
-            url = "{}{}".format(base_url, topic)
-            article = client.parse_url(url)
-            
+            article = get_article(topic)
+            print json.dumps(article, indent=2)
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(json.dumps(article))
         
 
-def main():
+def main():    
+    import sys
+    reload(sys)  # Reload does the trick!
+    sys.setdefaultencoding('UTF8')
+    
     logging.config.dictConfig({
         "version": 1,
         "formatters": {
@@ -151,9 +230,7 @@ def main():
     args = parser.parse_args()
 
     if args.article is not None:    
-        client = Client()
-        url = "{}{}".format(base_url, args.article)
-        article = client.parse_url(url)
+        article = get_article(args.article)
         print json.dumps(article, indent=2)
 
         if args.file:

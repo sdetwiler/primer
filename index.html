@@ -272,8 +272,7 @@
 	
 	function init()
 	{
-		
-		// play(wwi);
+
 	}
 	
 	function search()
@@ -285,8 +284,9 @@
 		req.onload = function() {
 			console.log("onload");
 			json = JSON.parse(this.responseText);
-			// play(json);
-			play(wwi);
+			play(json);
+//			Hand built test dataset.
+			// play(wwi);
 		}
 		req.open("GET", q.value, true);
 		req.send();
