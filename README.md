@@ -8,9 +8,19 @@ If you haven't already, go read https://en.wikipedia.org/wiki/The_Diamond_Age
 Development Setup for OS X
 ----------------------
     virtualenv env
-    env/bin/source activate
+    source env/bin/activate
     STATIC_DEPS=true pip install lxml
     pip install -r requirements.txt
+
+Development Setup for Amazon Linux
+----------------------
+		virtualenv env
+		source env/bin/activate
+		sudo yum install libxml2-devel libxslt-devel python-devel
+		pip install lxml
+		pip install -r requirements.txt
+	
+ 
 		
 Usage
 ----------------------
