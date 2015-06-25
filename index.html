@@ -1,292 +1,397 @@
+
 <!DOCTYPE html>
-<html lang="en" dir="ltr" class="client-nojs">
-<head>
-<meta charset="UTF-8" />
-<title>Primer</title>
-<meta name="generator" content="MediaWiki 1.26wmf10" />
-<link rel="copyright" href="//creativecommons.org/licenses/by-sa/3.0/" />
-<link rel="stylesheet" href="//en.wikipedia.org/w/load.php?debug=false&amp;lang=en&amp;modules=ext.uls.nojs%7Cext.visualEditor.viewPageTarget.noscript%7Cext.wikihiero%7Cmediawiki.legacy.commonPrint%2Cshared%7Cmediawiki.sectionAnchor%7Cmediawiki.skinning.interface%7Cmediawiki.ui.button%7Cskins.vector.styles%7Cwikibase.client.init&amp;only=styles&amp;skin=vector&amp;*" />
-<meta name="ResourceLoaderDynamicStyles" content="" />
-<link rel="stylesheet" href="//en.wikipedia.org/w/load.php?debug=false&amp;lang=en&amp;modules=site&amp;only=styles&amp;skin=vector&amp;*" />
-<style>a:lang(ar),a:lang(kk-arab),a:lang(mzn),a:lang(ps),a:lang(ur){text-decoration:none}
-/* cache key: enwiki:resourceloader:filter:minify-css:7:3904d24a08aa08f6a68dc338f9be277e */</style>
-<!--[if lt IE 7]><style type="text/css">body{behavior:url("/w/static/1.26wmf10/skins/Vector/csshover.min.htc")}</style><![endif]-->
-	
-	<style>
-	#nav
-	{
-		display:none;
-	}
-	
-	#spinner
-	{
-		display:none
-	}
-	
-	#image
-	{
-/*		max-width:100%;*/
-		max-height:600px;
-	}
-	
-	</style>
-	
-	<script>
-	
-	function chunkText(text)
-	{
-		var maxLen = 200;
-		var chunks = [];
-		// if(text.length > maxLen)
-		// {
-			var sentences = text.split(".");
-			for(var si in sentences)
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>The Primer</title>
+
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+    <!-- Custom styles for this template -->
+    <link href="assets/cover.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+			<style>
+			#content
 			{
-				var s = sentences[si];
-				while(s.length > maxLen)
+				display:none;
+			}
+			#cover
+			{
+				display:none;
+			}
+			#loading
+			{
+				display:none;
+			}
+			</style>
+
+			<script>
+			//-------------------------------------------------------------------------
+			// Someday these should be moved out of the global scope.
+			//-------------------------------------------------------------------------
+			var gCover;						// Cover home screen DOM element.
+			var gContent;					// Article content DOM element.
+			var gLoading;					// Loading screen DOM element.
+			var gQuery;						// Query string input DOM element.
+			var gImage;						// Article image DOM element.
+			var gCaption;					// Media caption DOM element.
+			var gTitle;						// Article title DOM element.
+			
+			var gChunks = [];			// All text chunks for the current article.
+			var gCurrChunk = -1;	// ID of the currently playing chunk.
+			var gMedia = {};			// All media to display, indexed by chunk id.
+			
+			//-------------------------------------------------------------------------
+			// Constructor when page loads.
+			//-------------------------------------------------------------------------
+			function init()
+			{
+				gCover = document.getElementById("cover");
+				gContent = document.getElementById("content");
+				gLoading = document.getElementById("loading");
+				gQuery = document.getElementById("query");
+				gImage = document.getElementById("image");
+				gCaption = document.getElementById("caption");
+				gTitle = document.getElementById("title");
+
+				doReset();
+			}
+			
+			//-------------------------------------------------------------------------
+			// Reset to the search screen.
+			//-------------------------------------------------------------------------
+			function doReset()
+			{
+				console.log("doReset");
+
+				window.speechSynthesis.pause();
+				window.speechSynthesis.cancel();
+				
+				gChunks = [];
+				gCurrChunk = -1;
+				gMedia = {};
+				
+				gQuery.value = "";
+				gCover.style.display="block";
+				gContent.style.display="none";
+				gLoading.style.display="none";
+			}
+			
+			//-------------------------------------------------------------------------
+			// Kick off an article search using the current query from the UI.
+			//-------------------------------------------------------------------------
+			function doSearch()
+			{
+				console.log("doSearch");
+
+				gCover.style.display="none";
+				gContent.style.display="none";
+				gLoading.style.display="block";
+
+				var req = new XMLHttpRequest();
+				req.onload = function() {
+					console.log("doSearch.onload");
+					json = JSON.parse(this.responseText);
+			
+					playArticle(json);
+				}
+		
+				var query = gQuery.value.replace(" ", "_");
+				req.open("GET", query, true);
+				req.send();
+
+				return false;
+			}
+			
+			//-------------------------------------------------------------------------
+			// Play the specified article.
+			//-------------------------------------------------------------------------
+			function playArticle(article)
+			{
+				gTitle.innerHTML = decodeURIComponent(article.title).replace("_", " ");
+				gTitle.href = article.url;
+				var chunkId = 0;
+				console.log("doPlay:" + article.title);
+
+				for(var i=0; i<article.content.length; ++i)
 				{
-					var idx = s.lastIndexOf(" ", maxLen);
-					if(idx < 0)
+					var curr = article.content[i];
+					var mediaIdx = 0;
+			
+					// If a media item exists grab it for the chunk id. This could be overridden later
+					// but exists in case there are chunks with no text.
+					if(curr.media.length > 0)
 					{
-						// just hack it up.
-						var left = s.substr(0,maxLen);
-						s = s.substr(maxLen);
-						chunks.push(left);
+						addMedia(curr.media[0], chunkId);
 					}
-					else
+			
+					// Now chunk the text into sentences and assign up to one media item per sentence.
+					var chunks = chunkText(article.content[i].text);
+					console.log(chunks.length + " text chunks")
+					for(var c=0; c<chunks.length; ++c)
 					{
-						var left = s.substr(0, idx)
-						s = s.substr(idx);
-						chunks.push(left);
+						// console.log("  " + c + ": " + chunks[c]);
+						// console.log(curr.media.length + " media items")
+						if(mediaIdx < curr.media.length)
+						{
+							addMedia(curr.media[mediaIdx], chunkId);
+							++mediaIdx;
+						}
+
+						++chunkId;
+					}
+					
+					gChunks = gChunks.concat(chunks);
+					gCurrChunk = -1;
+				}
+		
+				playNextChunk();
+				
+				
+				gCover.style.display="none";
+				gContent.style.display="block";
+				gLoading.style.display="none";
+			}
+			
+			
+			//-------------------------------------------------------------------------
+			// Chunk the input text into an array of strings that can be processed by
+			// speech synthesis. There are many bugs in speech synthesis for long strings
+			// and too many strings at once, so this tries to avoid it.
+			//
+			// Also, this syncs sentences to individual media items.
+			//-------------------------------------------------------------------------
+			function chunkText(text)
+			{
+				var maxLen = 200;
+				var chunks = [];
+				var sentences = text.split(".");
+				for(var si in sentences)
+				{
+					var s = sentences[si];
+					while(s.length > maxLen)
+					{
+						var idx = s.lastIndexOf(" ", maxLen);
+						if(idx < 0)
+						{
+							// just hack it up.
+							var left = s.substr(0,maxLen);
+							s = s.substr(maxLen);
+							chunks.push(left);
+						}
+						else
+						{
+							var left = s.substr(0, idx)
+							s = s.substr(idx);
+							chunks.push(left);
+						}
+					}
+					chunks.push(s)
+				}
+				return chunks;
+			}
+
+			//-------------------------------------------------------------------------
+			// Add media to display at the specified chunkId
+			//-------------------------------------------------------------------------
+			function addMedia(mediaItem, chunkId)
+			{
+				console.log("addMedia " + chunkId + " " + mediaItem.url)
+				gMedia[chunkId] = mediaItem;
+			}
+	
+			//-------------------------------------------------------------------------
+			// Show the media paired for the specified chunk, if it exists.
+			//-------------------------------------------------------------------------
+			function showMediaForChunk(chunkId)
+			{
+				console.log("showMediaForChunk:" + chunkId);
+				if(chunkId in gMedia)
+				{
+					med = gMedia[chunkId]
+					console.log(med)
+					switch(med.contentType)
+					{
+						case "image/jpeg":
+						case "image/png":
+						case "image/gif":
+						case "image/svg+xml":
+							gImage.src = med.url;
+							break;
 					}
 				}
-				chunks.push(s)
 			}
-		// }
-		// else
-		// {
-		// 	chunks.push(text);
-		// }
 
-		return chunks;
-	}
-
-	var media = {};
-	function addMedia(mediaItem, chunkId)
-	{
-		console.log("addMedia " + chunkId + " " + mediaItem.url)
-		media[chunkId] = mediaItem;
-	}
-	
-	function nextChunk(chunkId)
-	{
-		var image = document.getElementById("image");
-		var vector = document.getElementById("vector");
-		console.log("nextChunk:" + chunkId);
-		if(chunkId in media)
-		{
-			med = media[chunkId]
-			console.log(med)
-			switch(med.contentType)
+			//-------------------------------------------------------------------------
+			// Skip to and play the previous chunk.
+			//-------------------------------------------------------------------------
+			function goPrevious()
 			{
-				case "image/jpeg":
-				case "image/png":
-				case "image/gif":
-				case "image/svg+xml":
-					image.src = med.url;
-					break;
-			}
-		}
-	}
-
-	var gChunks = [];
-	var gCurrChunk = -1;
-	
-
-	function goPrevious()
-	{
-		skipping = true;
-		window.speechSynthesis.cancel();
-		gCurrChunk-=2;
-		if(gCurrChunk < 0)
-		{
-			gCurrChunk = 0;
-		}
-		
-		playNextChunk();
-	}
-
-	function goNext()
-	{
-		skipping = true;
-		gCurrChunk--;
-		window.speechSynthesis.cancel();
-		playNextChunk();
-	}
-	
-	function goPlayPause()
-	{
-		var button = document.getElementById("playpause");
-		
-		if(window.speechSynthesis.speaking)
-		{
-			window.speechSynthesis.pause();
-			playpause.value=">";
-		}
-		else //if(window.speechSynthesis.paused)
-		{
-			window.speechSynthesis.play();
-			playpause.value="||";
-		}
-	}
-	
-	function playNextChunk()
-	{
-		if(gCurrChunk < gChunks.length)
-		{
-			++gCurrChunk;
-			skipping = false;
-			
-			var msg = new SpeechSynthesisUtterance(gChunks[gCurrChunk]);
-			msg.chunkId = gCurrChunk;
-
-			msg.addEventListener("start", function(){
-				console.log("start");
-				nextChunk(this.chunkId);
-			}.bind(msg));
-
-			msg.addEventListener("end", function(){
-				console.log("end");
-				if(skipping != true)
+				skipping = true;
+				window.speechSynthesis.cancel();
+				gCurrChunk-=2;
+				if(gCurrChunk < 0)
 				{
-					playNextChunk();
+					gCurrChunk = 0;
 				}
-			}.bind(msg));
-
-			// Hack to get speech synth to work reliably... seriously.
-			// https://code.google.com/p/chromium/issues/detail?id=335907
-			console.log(msg);
-			window.speechSynthesis.speak(msg);
-			
-		}
-	}
-
-	function play(article)
-	{
-		var heading = document.getElementById("firstHeading");
-		heading.innerHTML = article.title;
-		var sourceLink = document.getElementById("sourceLink");
-		sourceLink.href = article.url;
-		var chunkId = 0;
-		console.log("play:" + article.title);
-
-		window.speechSynthesis.pause();
-		window.speechSynthesis.cancel();
 		
-		for(var i=0; i<article.content.length; ++i)
-		{
-			var curr = article.content[i];
-			var mediaIdx = 0;
-			
-			// If a media item exists grab it for the chunk id. This could be overridden later
-			// but exists in case there are chunks with no text.
-			if(curr.media.length > 0)
-			{
-				addMedia(curr.media[0], chunkId);
+				playNextChunk();
 			}
-			
-			// Now chunk the text into sentences and assign up to one media item per sentence.
-			var chunks = chunkText(article.content[i].text);
-			console.log(chunks.length + " text chunks")
-			for(var c=0; c<chunks.length; ++c)
+
+			//-------------------------------------------------------------------------
+			// Skip to and play the next chunk.
+			//-------------------------------------------------------------------------
+			function goNext()
 			{
-				// console.log("  " + c + ": " + chunks[c]);
-				// console.log(curr.media.length + " media items")
-				if(mediaIdx < curr.media.length)
+				skipping = true;
+				gCurrChunk--;
+				window.speechSynthesis.cancel();
+				playNextChunk();
+			}
+	
+			//-------------------------------------------------------------------------
+			// Toggle play/pause.
+			//-------------------------------------------------------------------------
+			function playPause()
+			{
+				var button = document.getElementById("playpause");
+		
+				if(window.speechSynthesis.speaking)
 				{
-					addMedia(curr.media[mediaIdx], chunkId);
-					++mediaIdx;
+					window.speechSynthesis.pause();
+					playpause.value=">";
 				}
-
-				++chunkId;
+				else //if(window.speechSynthesis.paused)
+				{
+					window.speechSynthesis.play();
+					playpause.value="||";
+				}
 			}
-			gChunks = gChunks.concat(chunks);
-			gCurrChunk = -1;
-		}
-		
-		playNextChunk();
-	}
 	
-	
-	function init()
-	{
-		window.speechSynthesis.pause();
-		window.speechSynthesis.cancel();
-	}
-	
-	function search()
-	{
-		var f = document.getElementById("f");
-		var spinner = document.getElementById("spinner");
-
-		var q = document.getElementById("q");
-		f.style.display = "none";
-		spinner.style.display = "block";
-
-		var req = new XMLHttpRequest();
-		req.onload = function() {
-			console.log("onload");
-			json = JSON.parse(this.responseText);
+			//-------------------------------------------------------------------------
+			// Play the next chunk. Called when the current chunk completes playback.
+			// To explicitly skip to the next chunk, call goNext().
+			//-------------------------------------------------------------------------
+			function playNextChunk()
+			{
+				if(gCurrChunk < gChunks.length)
+				{
+					++gCurrChunk;
+					skipping = false;
 			
-			spinner.style.display = "none";
-			var nav = document.getElementById("nav");
-			nav.style.display = "block";
+					var msg = new SpeechSynthesisUtterance(gChunks[gCurrChunk]);
+					msg.chunkId = gCurrChunk;
+
+					msg.addEventListener("start", function(){
+						console.log("start");
+						showMediaForChunk(this.chunkId);
+					}.bind(msg));
+
+					msg.addEventListener("end", function(){
+						console.log("end");
+						if(skipping != true)
+						{
+							playNextChunk();
+						}
+					}.bind(msg));
+
+					// Hack to get speech synth to work reliably... seriously.
+					// https://code.google.com/p/chromium/issues/detail?id=335907
+					console.log(msg);
 			
-			play(json);
-//			Hand built test dataset.
-			// play(wwi);
-		}
-		
-		var query = q.value.replace(" ", "_");
-		req.open("GET", query, true);
-		req.send();
-		
-		
-		return false;
-	}
-	</script>
+					window.speechSynthesis.speak(msg);
+				}
+			}
+			</script>
+  </head>
+
+  <body onload="init()">
+
+    <div class="site-wrapper">
+
+      <div class="site-wrapper-inner">
+
+        <div class="cover-container">
+
+          <div class="masthead clearfix">
+            <div class="inner">
+              <h3 class="masthead-brand">The Primer</h3>
+              <nav>
+                <ul class="nav masthead-nav">
+                  <li class="active"><a href="#" onclick="doReset()">Home</a></li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+					<!-- Cover Screen Begin -->
+          <div class="inner cover" id="cover">
+            <h1 class="cover-heading">The Primer</h1>
+            <p class="lead">Discover and explore all of human knowledge.</p>
+            <p class="lead">
+							<form onsubmit="return doSearch()">
+								<div class="row">
+									<div class="col-xs-12 col-sm-10 col-lg-10">
+										<input type="text" id="query" class="form-control" placeholder="Search" required autofocus>
+									</div>
+									<div class="col-xs-6 col-sm-2 col-lg-2">
+										<input type="submit" value="Go" class="form-control">
+									</div>
+								</div>
+							</form>
+            </p>
+          </div>
+					<!-- Cover Screen End -->
 
 
+					<!-- Content Screen Begin -->
+          <div class="inner cover" id="content">
+            <h1 class="cover-heading"><a id="title" href="#">Title</a></h1>
+							<img id="image" class="img-responsive" src="http://static1.squarespace.com/static/547f29bfe4b0dc192ed7bdac/54aeb15ce4b018c14f34c7cb/54aeb160e4b018c14f34c7ed/1420734817363/san-franc.jpg?format=2500w">
+							<p class="lead" id="caption">Caption</p>
+          </div>
+					<!-- Content Screen End -->
 
 
+					<!-- Loading Screen Begin -->
+          <div class="inner cover" id="loading">
+            <h1 class="cover-heading">Building Article</h1>
+							<img class="center-block img-responsive" src="assets/spinner.gif">
+          </div>
+					<!-- Content Screen End -->
 
-</head>
-<body class="mediawiki ltr sitedir-ltr ns-0 ns-subject page-Pioneer_11 skin-vector action-view" onload="init()">
-		<div id="mw-page-base" class="noprint"></div>
-		<div id="mw-head-base" class="noprint"></div>
-		<div id="content" class="mw-body" role="main">
-			<a id="top"></a>
-			<div id="siteNotice"><!-- CentralNotice --></div>
-			<div class="mw-indicators"></div>
-			<h1 id="firstHeading" class="firstHeading" lang="en"><i>Primer</i></h1>
-			<div id="bodyContent" class="mw-body-content">
-				<div id="siteSub"><a id="sourceLink" href="#">From Wikipedia, the free encyclopedia</a></div>
-				<div id="contentSub"></div>
-				<div id="mw-content-text" lang="en" dir="ltr" class="mw-content-ltr">
-					<p>
-<form onsubmit="return search()" id="f">
-	Name a topic: <input type="text" id="q">
-</form>
-<img id="spinner" src="/assets/spinner.gif">
-<div id="nav">
-<input type="button" onclick="goPrevious()" value="&lt;&lt;">
-<input type="button" onclick="goNext()" value="&gt;&gt;">
-<input type="button" id="playpause" onclick="goPlayPause()" value="||">
-</div>
-						<img id="image">
-						
-					</p>
-			</div>
-		</div>
-	</body>
+
+          <div class="mastfoot">
+            <div class="inner">
+              <p>From Wikipedia, the free encyclopedia.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+		<!-- Latest compiled and minified JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <!-- <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script> -->
+  </body>
 </html>
