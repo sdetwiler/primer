@@ -36,6 +36,10 @@
 			{
 				display:none;
 			}
+			#caption
+			{
+				cursor:pointer;
+			}
 			</style>
 
 			<script>
@@ -67,13 +71,13 @@
 				gCaption = document.getElementById("caption");
 				gTitle = document.getElementById("title");
 
-				doReset();
+				doHome();
 			}
 			
 			//-------------------------------------------------------------------------
 			// Reset to the search screen.
 			//-------------------------------------------------------------------------
-			function doReset()
+			function reset()
 			{
 				console.log("doReset");
 
@@ -84,6 +88,17 @@
 				gCurrChunk = -1;
 				gMedia = {};
 				
+			}
+
+			//-------------------------------------------------------------------------
+			// Go to the home screen.
+			//-------------------------------------------------------------------------
+			function doHome()
+			{
+				console.log("doHome");
+
+				reset();
+
 				gQuery.value = "";
 				gCover.style.display="block";
 				gContent.style.display="none";
@@ -96,7 +111,18 @@
 			function doSearch()
 			{
 				console.log("doSearch");
-
+				
+				search(gQuery.value);
+				return false;
+			}
+			
+			//-------------------------------------------------------------------------
+			// Search for the article matching the specified query and then play it.
+			//-------------------------------------------------------------------------
+			function search(query)
+			{
+				reset();
+				
 				gCover.style.display="none";
 				gContent.style.display="none";
 				gLoading.style.display="block";
@@ -109,7 +135,7 @@
 					playArticle(json);
 				}
 		
-				var query = gQuery.value.replace(" ", "_");
+				var query = query.replace(" ", "_");
 				req.open("GET", query, true);
 				req.send();
 
@@ -229,7 +255,7 @@
 						case "image/gif":
 						case "image/svg+xml":
 							gImage.src = med.url;
-							gCaption.innerHtml = med.caption;
+							gCaption.innerHTML = med.caption;
 							break;
 					}
 				}
@@ -331,7 +357,7 @@
               <h3 class="masthead-brand">The Primer</h3>
               <nav>
                 <ul class="nav masthead-nav">
-                  <li class="active"><a href="#" onclick="doReset()">Home</a></li>
+                  <li class="active"><a href="#" onclick="doHome()">Home</a></li>
                 </ul>
               </nav>
             </div>
@@ -359,8 +385,8 @@
 					<!-- Content Screen Begin -->
           <div class="inner cover" id="content">
             <h1 class="cover-heading"><a id="title" href="#">Title</a></h1>
-							<img id="image" class="img-responsive" src="http://static1.squarespace.com/static/547f29bfe4b0dc192ed7bdac/54aeb15ce4b018c14f34c7cb/54aeb160e4b018c14f34c7ed/1420734817363/san-franc.jpg?format=2500w">
-							<p class="lead" id="caption">Caption</p>
+							<img id="image" class="img-responsive" src="assets/trans.gif">
+							<p class="lead" id="caption" onclick="search(this.innerHTML)">Caption</p>
           </div>
 					<!-- Content Screen End -->
 
