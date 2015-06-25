@@ -4,8 +4,6 @@
 <meta charset="UTF-8" />
 <title>Primer</title>
 <meta name="generator" content="MediaWiki 1.26wmf10" />
-<link rel="apple-touch-icon" href="/static/apple-touch/wikipedia.png" />
-<link rel="shortcut icon" href="/static/favicon/wikipedia.ico" />
 <link rel="copyright" href="//creativecommons.org/licenses/by-sa/3.0/" />
 <link rel="stylesheet" href="//en.wikipedia.org/w/load.php?debug=false&amp;lang=en&amp;modules=ext.uls.nojs%7Cext.visualEditor.viewPageTarget.noscript%7Cext.wikihiero%7Cmediawiki.legacy.commonPrint%2Cshared%7Cmediawiki.sectionAnchor%7Cmediawiki.skinning.interface%7Cmediawiki.ui.button%7Cskins.vector.styles%7Cwikibase.client.init&amp;only=styles&amp;skin=vector&amp;*" />
 <meta name="ResourceLoaderDynamicStyles" content="" />
@@ -25,164 +23,16 @@
 		display:none
 	}
 	
+	#image
+	{
+/*		max-width:100%;*/
+		max-height:600px;
+	}
+	
 	</style>
 	
 	<script>
 	
-	var wwi = {
-		title:"World War I",
-		url:"https://en.wikipedia.org/wiki/World_War_I",
-		
-		content: [
-			{
-				text:"World War I (WWI or WW1), also known as the First World War or the Great War, was a global war centred in Europe that began on 28 July 1914 and lasted until 11 November 1918. More than 9 million combatants and 7 million civilians died as a result of the war, a casualty rate exacerbated by the belligerents' technological and industrial sophistication, and tactical stalemate. It was one of the deadliest conflicts in history, paving the way for major political changes, including revolutions in many of the nations involved.",
-				media: [ 
-					{
-						"url": "https://upload.wikimedia.org/wikipedia/commons/0/09/The_badly_shelled_main_road_to_Bapaume.jpg",
-						"contentType":"image/jpeg"
-					},
-					{
-						"url": "https://upload.wikimedia.org/wikipedia/commons/0/0e/AlbatDIII.jpg",
-						"contentType":"image/jpeg",
-					},
-					{
-						"url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Vickers_machine_gun_crew_with_gas_masks.jpg",
-						"contentType":"image/jpeg"
-					}
-				]
-			},
-			
-			{
-				text:"The war drew in all the world's economic great powers, assembled in two opposing alliances: the Allies (based on the Triple Entente of the United Kingdom, France and the Russian Empire) and the Central Powers of Germany and Austria-Hungary.",
-				media: [
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/4/4f/WWI-re.png",
-						"contentType":"image/jpeg"
-					}
-				]
-			},
-
-			{
-				text:"Although Italy had also been a member of the Triple Alliance alongside Germany and Austria-Hungary, it did not join the Central Powers, as Austria-Hungary had taken the offensive against the terms of the alliance. These alliances were reorganised and expanded as more nations entered the war: Italy, Japan and the United States joined the Allies, and the Ottoman Empire and Bulgaria the Central Powers. More than 70 million military personnel, including 60 million Europeans, were mobilised in one of the largest wars in history.",
-				media: [
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/d/d7/Triple_Alliance.png",
-						"contentType":"image/jpeg"
-					}
-				]
-			},
-
-			{
-				text:"The trigger for war was the 28 June 1914 assassination of Archduke Franz Ferdinand of Austria, heir to the throne of Austria-Hungary, by Yugoslav nationalist Gavrilo Princip in Sarajevo. This set off a diplomatic crisis when Austria-Hungary delivered an ultimatum to the Kingdom of Serbia, and entangled international alliances formed over the previous decades were invoked. Within weeks, the major powers were at war and the conflict soon spread around the world.",
-				media: [
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/e/ea/DC-1914-27-d-Sarajevo-cropped.jpg",
-						"contentType":"image/jpeg"
-					},
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/f/f6/Gavrilo_princip.jpg",
-						"contentType":"image/jpeg"
-					}
-				]
-			},
-			
-			{
-				text:"On 28 July, the Austro-Hungarians declared war on Serbia and subsequently invaded. As Russia mobilised in support of Serbia, Germany invaded neutral Belgium and Luxembourg before moving towards France, leading Britain to declare war on Germany. After the German march on Paris was halted, what became known as the Western Front settled into a battle of attrition, with a trench line that would change little until 1917. Meanwhile, on the Eastern Front, the Russian army was successful against the Austro-Hungarians, but was stopped in its invasion of East Prussia by the Germans. In November 1914, the Ottoman Empire joined the Central Powers, opening fronts in the Caucasus, Mesopotamia and the Sinai. Italy joined the Allies in 1915 and Bulgaria joined the Central Powers in the same year, while Romania joined the Allies in 1916, and the United States joined the Allies in 1917.",
-				media: [
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/Austro-Hungarian_Monarchy_%281914%29.svg/250px-Austro-Hungarian_Monarchy_%281914%29.svg.png		",
-						"contentType":"image/jpeg"
-					},
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/EU-Belgium.svg/250px-EU-Belgium.svg.png",
-						"contentType":"image/jpeg"
-					},
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/f/fa/Cheshire_Regiment_trench_Somme_1916.jpg",
-						"contentType":"image/jpeg"
-					},
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/6/64/Skoda_305_mm_Model_1911_LOC_War_of_the_Nations.jpg",
-						"contentType":"image/jpeg"
-					},
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/BattleOfTannenberg1.jpg/300px-BattleOfTannenberg1.jpg",
-						"contentType":"image/jpeg"
-					},
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Kingdom_of_Romania_%281939%29.svg/250px-Kingdom_of_Romania_%281939%29.svg.png",
-						"contentType":"image/jpeg"
-					},
-				]
-			}
-			
-		],
-	};
-
-
-
-
-	var testArticle = {
-		title:"Test",
-		url:"https://en.wikipedia.org/wiki/World_War_I",
-		
-		content: [
-			{
-				text:"One. Two. Three.",
-				media: [ 
-					{
-						"url": "https://upload.wikimedia.org/wikipedia/commons/0/09/The_badly_shelled_main_road_to_Bapaume.jpg",
-						"contentType":"image/jpeg"
-					},
-					{
-						"url": "https://upload.wikimedia.org/wikipedia/commons/0/0e/AlbatDIII.jpg",
-						"contentType":"image/jpeg",
-					},
-					{
-						"url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Vickers_machine_gun_crew_with_gas_masks.jpg",
-						"contentType":"image/jpeg"
-					}
-				]
-			},
-			
-			{
-				text:"Four.",
-				media: [
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/4/4f/WWI-re.png",
-						"contentType":"image/jpeg"
-					}
-				]
-			},
-
-			{
-				text:"Five",
-				media: [
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/d/d7/Triple_Alliance.png",
-						"contentType":"image/jpeg"
-					}
-				]
-			},
-
-			{
-				text:"six",
-				media: [
-					{
-						"url":"https://upload.wikimedia.org/wikipedia/commons/e/ea/DC-1914-27-d-Sarajevo-cropped.jpg",
-						"contentType":"image/jpeg"
-					}
-				]
-			}
-		],
-		
-		
-		
-		
-		
-	};
-
-
 	function chunkText(text)
 	{
 		var maxLen = 200;
@@ -273,6 +123,23 @@
 		window.speechSynthesis.cancel();
 		playNextChunk();
 	}
+	
+	function goPlayPause()
+	{
+		var button = document.getElementById("playpause");
+		
+		if(window.speechSynthesis.speaking)
+		{
+			window.speechSynthesis.pause();
+			playpause.value=">";
+		}
+		else //if(window.speechSynthesis.paused)
+		{
+			window.speechSynthesis.play();
+			playpause.value="||";
+		}
+	}
+	
 	function playNextChunk()
 	{
 		if(gCurrChunk < gChunks.length)
@@ -401,7 +268,7 @@
 			<a id="top"></a>
 			<div id="siteNotice"><!-- CentralNotice --></div>
 			<div class="mw-indicators"></div>
-			<h1 id="firstHeading" class="firstHeading" lang="en"><i>Heading</i></h1>
+			<h1 id="firstHeading" class="firstHeading" lang="en"><i>Primer</i></h1>
 			<div id="bodyContent" class="mw-body-content">
 				<div id="siteSub"><a id="sourceLink" href="#">From Wikipedia, the free encyclopedia</a></div>
 				<div id="contentSub"></div>
@@ -412,10 +279,11 @@
 </form>
 <img id="spinner" src="/assets/spinner.gif">
 <div id="nav">
-<input type="button" onclick="goPrevious()" value="&lt;">
-<input type="button" onclick="goNext()" value="&gt;">
+<input type="button" onclick="goPrevious()" value="&lt;&lt;">
+<input type="button" onclick="goNext()" value="&gt;&gt;">
+<input type="button" id="playpause" onclick="goPlayPause()" value="||">
 </div>
-						<img id="image" style="max-width:100%; max-height:100%;">
+						<img id="image">
 						
 					</p>
 			</div>
