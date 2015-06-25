@@ -14,10 +14,9 @@ Development Setup for OS X
 
 Development Setup for Amazon Linux
 ----------------------
-		sudo yum install gcc gcc-c++
+		sudo yum install git emacs gcc gcc-c++ libxml2-devel libxslt-devel python-devel
 		virtualenv env
 		source env/bin/activate
-		sudo yum install libxml2-devel libxslt-devel python-devel
 		pip install lxml
 		pip install -r requirements.txt
 	
