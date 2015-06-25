@@ -159,8 +159,7 @@
 				}
 		
 				playNextChunk();
-				
-				
+								
 				gCover.style.display="none";
 				gContent.style.display="block";
 				gLoading.style.display="none";
@@ -230,6 +229,7 @@
 						case "image/gif":
 						case "image/svg+xml":
 							gImage.src = med.url;
+							gCaption.innerHtml = med.caption;
 							break;
 					}
 				}

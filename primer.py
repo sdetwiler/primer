@@ -66,7 +66,7 @@ class Client():
             client = Client()
             markup = self.get_markup_for_topic(topic)
             article = compat.parse_txt(markup)
-            self.depth_find_media(article, media)
+            self.depth_find_media(article, topic, media)
             print "toplc: " + topic
             print media
         except:
@@ -108,16 +108,16 @@ class Client():
         return None
 
 
-    def depth_find_media(self, node, media=[], depth=0):
+    def depth_find_media(self, node, topic, media=[], depth=0):
         if type(node) == ImageLink:
             url = self.url_from_image_link(node.target)
             contentType = self.contentType_for_file(url)
             if contentType is not None:
-                media.append({"url":url, "contentType":contentType})
+                media.append({"url":url, "contentType":contentType, "caption":topic, "article":topic})
 
         if len(media) < 3:
             for c in node.children:
-                self.depth_find_media(c, media, depth+1)
+                self.depth_find_media(c, topic, media, depth+1)
             
 
     def reset(self):
@@ -159,7 +159,10 @@ class Client():
             
             url = self.url_from_image_link(node.target)
             
-            self.block["media"].append({"url":url, "contentType":"image/jpeg"})
+            caption = ""
+            if len(node.children):
+                caption = node.children[0].text
+            self.block["media"].append({"url":url, "contentType":"image/jpeg", "caption":caption, "article":None})
             # Drop children of images to supress possible captions.
             node.children = []
             
