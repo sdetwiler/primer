@@ -17,18 +17,23 @@ from mwlib import wiki
 # import mwlib.parser.nodes
 from mwlib.parser.nodes import *
 from mwlib.refine import core, compat
+from mwlib.expander import expandstr
 
 import StringIO
 
 logger = logging.getLogger("piratestudios.primer")
 
+# Bam, right in the global scope...        
+usejsoncache = True
+usewikicache = True
+userelatedmedia = True 
 
 class Client():
     def __init__(self):
         self.content = []
 
-
     def get_article(self, topic):
+        global usejsoncache
         cacheDir = "./json_cache"
         try:
             os.mkdir(cacheDir)
@@ -36,11 +41,15 @@ class Client():
             pass
             
         filename = "{}/{}".format(cacheDir, topic)
-        if os.path.isfile(filename):
+        if usejsoncache is True and os.path.isfile(filename):
             print "cache hit for " + topic
             js = open(filename).read()
         else:
             markup = self.get_markup_for_topic(topic)
+
+            markup = expandstr(markup)
+            # print markup
+            
             article = compat.parse_txt(markup)
             self.reset()
             self.depth_first(article)
@@ -116,8 +125,12 @@ class Client():
         self.block = {"text":"", "media":[]}
         
     def depth_first(self, node, depth=0):
+        global userelatedmedia
+        
+        # print "node: {} {}".format(type(node), node)
         # Magic node type signaling end of paragraph.
         if node.type == 21:
+            # print "magic {}".format(node)
             self.block["text"] = self.block["text"].strip()
             # if there is text that isn't a template reference or if there is media, add the block
             if (len(self.block["text"]) and self.block["text"][0] is not "{") or len(self.block["media"]):
@@ -135,7 +148,7 @@ class Client():
             if len(node.children) == 0:
                 self.block["text"]+= node.target
 
-            if self.find_media == True:
+            if self.find_media == True and userelatedmedia:
                 media = self.get_media_for_article(node.target)
                 if len(media) > 0:
                     self.block["media"].append(media[0])
@@ -150,9 +163,10 @@ class Client():
             # Drop children of images to supress possible captions.
             node.children = []
             
-        elif type(node) == Text:# node.text and len(node.text) > 0:
+        elif type(node) == Text:
             # print "{} {} {}".format("text", type(node), node.text)
             text = node.text
+            
             # A sentence ended, so start looking for media again.
             if "." in text:
                 self.find_media = True
@@ -166,6 +180,7 @@ class Client():
 
 
     def get_markup_for_topic(self, topic):
+        global usewikicache
         url = "https://en.wikipedia.org/w/index.php?title={}&action=edit".format(topic)
 
         cacheDir = "./markup_cache"
@@ -175,7 +190,7 @@ class Client():
             pass
             
         filename = "{}/{}".format(cacheDir, topic)
-        if os.path.isfile(filename):
+        if usewikicache is True and os.path.isfile(filename):
             print "cache hit for " + topic
             markup = open(filename).read()
         else:
@@ -190,66 +205,6 @@ class Client():
         textarea = soup.find("textarea")
         markup = textarea.contents[0]
         return markup
-
-    def parse_markup_from_html(self, html):
-        self.reset()
-
-        markup = self.get_markup_from_html(html)
-
-        article = compat.parse_txt(markup)
-        self.depth_first(article)
-            
-        return {"content":self.content, "title":""}
-     
-
-    def parse_html(self, html):
-        article = {}
-        content = []
-        
-        soup = BeautifulSoup(html)
-        
-        title = soup.find("title")
-        article["title"] = title.get_text()
-        
-        div = soup.find("div", id="mw-content-text")
-
-
-        for c in div.contents:
-            # print c.name
-            if (c.name == "h3") or (c.name == "p" and len(content) == 0):
-                block = { "media":[], "text":"" }
-                paragraphs = []
-                for sib in c.previous_siblings:
-                    if sib.name == "p":
-                        break;
-                    elif sib.name == "div":
-                        img = sib.find("img")
-                        if img is not None:
-                            media = {"url":img.get("src"), "contentType":"image/jpeg"}
-                            block["media"].append(media)
-                    
-                for sib in c.next_siblings:
-                    if sib.name == "p":
-                        # print sib
-                        block["text"]+= sib.get_text()
-                    elif sib.name == "h1":
-                        break
-                    elif sib.name == "h2":
-                        break
-                    elif sib.name == "h3":
-                        break
-                    
-
-                content.append(block)
-
-        article["content"] = content
-        return article
-
-    def __str__(self):
-        s = ""
-        for d in self.dungeons:
-            s += "{}\n".format(d)
-        return s
 
 
 def get_article(topic):
@@ -277,9 +232,13 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(article)
-        
 
-def main():    
+
+def main():  
+    global usejsoncache
+    global usewikicache
+    global userelatedmedia
+      
     import sys
     reload(sys)  # Reload does the trick!
     sys.setdefaultencoding('UTF8')
@@ -321,7 +280,15 @@ def main():
     parser.add_argument("--article", default=None, help="The article to generate. (World_War_I)")
     parser.add_argument("--file", action="store_true", default=False, help="Write data to files")
     parser.add_argument("--server", default=False, action="store_true", help="Run interactive HTTP server")
+    parser.add_argument("--nojsoncache", default=False, action="store_true", help="Skip the JSON cache")
+    parser.add_argument("--nowikicache", default=False, action="store_true", help="Skip the Wiki markup cache")
+    parser.add_argument("--norelatedmedia", default=False, action="store_true", help="Skip related media discovery")
     args = parser.parse_args()
+
+    # Yuck
+    usejsoncache = args.nojsoncache == False
+    usewikicache = args.nowikicache == False
+    userelatedmedia = args.norelatedmedia == False
 
     if args.article is not None:    
         article = get_article(args.article)
