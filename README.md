@@ -11,3 +11,24 @@ Development Setup for OS X
     env/bin/source activate
     STATIC_DEPS=true pip install lxml
     pip install -r requirements.txt
+		
+Usage
+----------------------
+
+	usage: primer.py [-h] [--article ARTICLE] [--file] [--server] [--nojsoncache]
+	                 [--nowikicache] [--norelatedmedia]
+
+	optional arguments:
+	  -h, --help         show this help message and exit
+	  --article ARTICLE  The article to generate. (World_War_I)
+	  --file             Write data to files
+	  --server           Run interactive HTTP server
+	  --nojsoncache      Skip the JSON cache
+	  --nowikicache      Skip the Wiki markup cache
+	  --norelatedmedia   Skip related media discovery
+		
+To run as an interactive server run:
+
+	./primer.py --server
+	
+And open http://localhost:8000 in your browser
