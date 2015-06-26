@@ -8,8 +8,6 @@ import json
 
 import requests
 
-from bs4 import BeautifulSoup
-
 import SimpleHTTPServer
 import SocketServer
 
@@ -183,10 +181,10 @@ class Client():
             self.depth_first(c, depth+1)
 
 
-    # Get the wiki markup for the specified topic... I'm sure there's a better method.
+    # Get the wiki markup for the specified topic.
     def get_markup_for_topic(self, topic):
         global usewikicache
-        url = "https://en.wikipedia.org/w/index.php?title={}&action=edit".format(topic)
+        url = "https://en.wikipedia.org/wiki/{}?action=raw".format(topic)
 
         cacheDir = "./markup_cache"
         try:
@@ -200,18 +198,11 @@ class Client():
             markup = open(filename).read()
         else:
             response = requests.get(url, timeout=2.0)
-            markup = self.get_markup_from_html(response.text)
+            markup = response.text
             
             open(filename, "w").write(markup)
         return markup
     
-    # Extract the markup from the edit HTML page.    
-    def get_markup_from_html(self, html):
-        soup = BeautifulSoup(html)
-        textarea = soup.find("textarea")
-        markup = textarea.contents[0]
-        return markup
-
 
 # Returns the JSON formatted article.
 def get_article(topic):
@@ -229,6 +220,9 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
         elif self.path.startswith("/assets/"):
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+        elif self.path == "/favicon.ico":
+            return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+            
             
         else:
             topic = self.path[1:]
@@ -282,7 +276,6 @@ def main():
 
     # Deterministic random sequences.
     random.seed(1)
-
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--article", default=None, help="The article to generate. (World_War_I)")
