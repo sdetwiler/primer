@@ -29,6 +29,7 @@ class Client():
     def __init__(self):
         self.content = []
 
+    # Get the JSON representation of the article for the specified topic.
     def get_article(self, topic):
         global usejsoncache
         cacheDir = "./json_cache"
@@ -57,6 +58,7 @@ class Client():
             open(filename, "w").write(js)
         return js
 
+    # Returns the media in the article for the specified topic.
     def get_media_for_article(self, topic):
         media = []
         try:
@@ -71,6 +73,7 @@ class Client():
 
         return media
 
+    # Convert a wiki link to a URL.
     def url_from_image_link(self, link):
         print link
         if link.startswith("File:"):
@@ -161,7 +164,7 @@ class Client():
             caption = ""
             if len(node.children):
                 caption = node.children[0].text
-            self.block["media"].append({"url":url, "contentType":"image/jpeg", "caption":caption, "article":None})
+            self.block["media"].append({"url":url, "contentType":self.contentType_for_file(url), "caption":caption, "article":None})
             # Drop children of images to supress possible captions.
             node.children = []
             
