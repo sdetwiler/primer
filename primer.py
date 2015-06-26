@@ -7,6 +7,7 @@ import json
 
 import requests
 
+import BaseHTTPServer
 import SimpleHTTPServer
 import SocketServer
 
@@ -238,6 +239,10 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             self.wfile.write(article)
 
 
+class ThreadingSimpleServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
+    pass
+
+
 def main():  
     global usejsoncache
     global usewikicache
@@ -301,13 +306,15 @@ def main():
     if args.server is True:
         PORT = 8000
 
-        Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+        httpd = ThreadingSimpleServer(('', PORT), WikipediaHandler)
+        logger.debug("serving at port {}".format(PORT))
+        try:
+            while True:
+                sys.stdout.flush()
+                httpd.handle_request()
 
-        httpd = SocketServer.TCPServer(("", PORT), WikipediaHandler)
-
-        print "serving at port", PORT
-        httpd.serve_forever()
-
+        except KeyboardInterrupt:
+            logger.debug("KeyboardInterrupt")
 
     logger.debug("done")
 
