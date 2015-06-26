@@ -68,6 +68,7 @@
 			var gChunks = [];			// All text chunks for the current article.
 			var gCurrChunk = -1;	// ID of the currently playing chunk.
 			var gMedia = {};			// All media to display, indexed by chunk id.
+			var gPlaying = false;	// Has playback begun?
 			
 			//-------------------------------------------------------------------------
 			// Constructor when page loads.
@@ -98,7 +99,7 @@
 				gChunks = [];
 				gCurrChunk = -1;
 				gMedia = {};
-				
+				gPlaying = false;
 			}
 
 			//-------------------------------------------------------------------------
@@ -194,8 +195,11 @@
 					gChunks = gChunks.concat(chunks);
 					gCurrChunk = -1;
 				}
-		
-				playNextChunk();
+				var iOS = ( navigator.userAgent.match(/iPad|iPhone|iPod/g) ? true : false );
+				if(!iOS)
+				{
+					playNextChunk();
+				}
 								
 				gCover.style.display="none";
 				gContent.style.display="block";
@@ -326,6 +330,7 @@
 			{
 				if(gCurrChunk < gChunks.length)
 				{
+					gPlaying = true;
 					++gCurrChunk;
 					skipping = false;
 			
@@ -350,6 +355,14 @@
 					console.log(msg);
 			
 					window.speechSynthesis.speak(msg);
+				}
+			}
+			
+			function manualPlay()
+			{
+				if(!gPlaying)
+				{
+					playNextChunk();
 				}
 			}
 			</script>
@@ -395,9 +408,9 @@
 
 					<!-- Content Screen Begin -->
           <div class="inner cover" id="content">
-            <h1 class="cover-heading"><a id="title" href="#">Title</a></h1>
-							<img id="image" class="img-responsive" src="assets/trans.gif">
-							<p class="lead" id="caption" onclick="search(this.innerHTML)">Caption</p>
+            <h1 class="cover-heading"><a id="title" href="#"></a></h1>
+							<img id="image" class="img-responsive" src="assets/play.png" onclick="manualPlay()">
+							<p class="lead" id="caption" onclick="search(this.innerHTML)"></p>
           </div>
 					<!-- Content Screen End -->
 
