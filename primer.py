@@ -3,7 +3,6 @@ import os
 import logging
 import logging.config
 import argparse
-import random
 import json
 
 import requests
@@ -16,7 +15,7 @@ from mwlib.parser.nodes import *
 from mwlib.refine import core, compat
 from mwlib.expander import expandstr
 
-import StringIO
+# import StringIO
 
 logger = logging.getLogger("piratestudios.primer")
 
@@ -120,7 +119,8 @@ class Client():
             for c in node.children:
                 self.depth_find_media(c, topic, media, depth+1)
             
-
+    # Resets the accumulation data for the current block of text. This is done as depth_first transitions
+    # between paragraphs.
     def reset(self):
         self.find_media = True
         self.block = {"text":"", "media":[]}
@@ -231,7 +231,7 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             topic = self.path[1:]
             # print topic
             article = get_article(topic)
-            print article
+            # print article
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -276,9 +276,6 @@ def main():
                 },
             },
         })
-
-    # Deterministic random sequences.
-    random.seed(1)
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--article", default=None, help="The article to generate. (World_War_I)")
