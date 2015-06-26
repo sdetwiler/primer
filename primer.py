@@ -229,7 +229,7 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             
             
         else:
-            topic = self.path[1:]
+            topic = self.path[1:].lower()
             # print topic
             article = get_article(topic)
             # print article
