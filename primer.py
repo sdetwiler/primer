@@ -14,7 +14,6 @@ import SimpleHTTPServer
 import SocketServer
 
 from mwlib import wiki
-# import mwlib.parser.nodes
 from mwlib.parser.nodes import *
 from mwlib.refine import core, compat
 from mwlib.expander import expandstr
@@ -107,7 +106,7 @@ class Client():
 
         return None
 
-
+    # Walk an article to discover its contained media.
     def depth_find_media(self, node, topic, media=[], depth=0):
         if type(node) == ImageLink:
             url = self.url_from_image_link(node.target)
@@ -115,6 +114,7 @@ class Client():
             if contentType is not None:
                 media.append({"url":url, "contentType":contentType, "caption":topic, "article":topic})
 
+        # Constrain how many media items are found for each topic.
         if len(media) < 3:
             for c in node.children:
                 self.depth_find_media(c, topic, media, depth+1)
@@ -123,7 +123,8 @@ class Client():
     def reset(self):
         self.find_media = True
         self.block = {"text":"", "media":[]}
-        
+    
+    # Walk an article to construct its JSON representation for playback.
     def depth_first(self, node, depth=0):
         global userelatedmedia
         
@@ -182,6 +183,7 @@ class Client():
             self.depth_first(c, depth+1)
 
 
+    # Get the wiki markup for the specified topic... I'm sure there's a better method.
     def get_markup_for_topic(self, topic):
         global usewikicache
         url = "https://en.wikipedia.org/w/index.php?title={}&action=edit".format(topic)
@@ -202,7 +204,8 @@ class Client():
             
             open(filename, "w").write(markup)
         return markup
-        
+    
+    # Extract the markup from the edit HTML page.    
     def get_markup_from_html(self, html):
         soup = BeautifulSoup(html)
         textarea = soup.find("textarea")
@@ -210,6 +213,7 @@ class Client():
         return markup
 
 
+# Returns the JSON formatted article.
 def get_article(topic):
     client = Client()
     article = client.get_article(topic)
@@ -242,8 +246,9 @@ def main():
     global usewikicache
     global userelatedmedia
       
+    # Force UTF8 encoding... this is sort of ugly.
     import sys
-    reload(sys)  # Reload does the trick!
+    reload(sys)
     sys.setdefaultencoding('UTF8')
     
     logging.config.dictConfig({
@@ -268,7 +273,7 @@ def main():
                 },
             },
         "loggers": {
-            "n3twork": {
+            "piratestudios": {
                 "handlers": ["stdout", "stderr"],
                 "level": "DEBUG",
                 },
