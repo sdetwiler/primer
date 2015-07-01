@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 import os
+import sys
 import logging
 import logging.config
 import argparse
 import json
 
 import requests
+
+import threading
+
+import datetime
 
 import BaseHTTPServer
 import SimpleHTTPServer
@@ -24,14 +29,18 @@ logger = logging.getLogger("piratestudios.primer")
 usejsoncache = True
 usewikicache = True
 userelatedmedia = True 
+threaded = False
 
 class Client():
     def __init__(self):
         self.content = []
+        self.related_media = {}
 
     # Get the JSON representation of the article for the specified topic.
     def get_article(self, topic):
         global usejsoncache
+        global threaded
+        
         cacheDir = "./json_cache"
         try:
             os.mkdir(cacheDir)
@@ -50,6 +59,10 @@ class Client():
             
             article = compat.parse_txt(markup)
             self.reset()
+            if threaded:
+                self.build_related_media(article)
+            else:
+                print "Not performing threaded processing"
             self.depth_first(article)
         
             obj = {"content":self.content, "title":topic, "url":"https://en.wikipedia.org/wiki/{}".format(topic), "url":"https://en.wikipedia.org/wiki/{}".format(topic)}
@@ -66,8 +79,8 @@ class Client():
             markup = self.get_markup_for_topic(topic)
             article = compat.parse_txt(markup)
             self.depth_find_media(article, topic, media)
-            print "toplc: " + topic
-            print media
+            #print "toplc: " + topic
+            #print media
         except:
             pass
 
@@ -75,7 +88,7 @@ class Client():
 
     # Convert a wiki link to a URL.
     def url_from_image_link(self, link):
-        print link
+        # print link
         if link.startswith("File:"):
             link = link[5:] # remove File:
         elif link.startswith("Image:"):
@@ -107,6 +120,34 @@ class Client():
 
         return None
 
+    def related_media_thread(self, topic):
+        media = self.get_media_for_article(topic)
+        if len(media) > 0:
+            if topic not in self.related_media:
+                self.related_media[topic] = media 
+            
+    def build_related_media_internal(self, node, depth=0):
+        if type(node) == ArticleLink:
+            topic = node.target
+            t = threading.Thread(target=self.related_media_thread, args=(topic,))
+            self.related_media_threads.append(t)
+            t.start()
+
+        for c in node.children:
+            self.build_related_media_internal(c, depth+1)
+    
+    def build_related_media(self, node):
+        logging.debug("build_related_media started")
+        self.related_media = {}
+        self.related_media_threads = []
+        self.build_related_media_internal(node)
+        logging.debug("Waiting for {} threads to complete".format(len(self.related_media_threads)))
+        for t in self.related_media_threads:
+            t.join()
+        self.related_media_threads = []
+        logging.debug("build_related_media done")
+        
+
     # Walk an article to discover its contained media.
     def depth_find_media(self, node, topic, media=[], depth=0):
         if type(node) == ImageLink:
@@ -129,6 +170,7 @@ class Client():
     # Walk an article to construct its JSON representation for playback.
     def depth_first(self, node, depth=0):
         global userelatedmedia
+        global threaded
         
         # print "node: {} {}".format(type(node), node)
         # Magic node type signaling end of paragraph.
@@ -152,9 +194,17 @@ class Client():
                 self.block["text"]+= node.target
 
             if self.find_media == True and userelatedmedia:
-                media = self.get_media_for_article(node.target)
+                if threaded:
+                    if node.target in self.related_media:
+                        media = self.related_media[node.target]
+                    else:
+                        media = []
+                else:
+                    media = self.get_media_for_article(node.target)
+                    
                 if len(media) > 0:
-                    self.block["media"].append(media[0])
+                    # self.block["media"].append(media[0])
+                    self.block["media"] = media
                     self.find_media = False
 
         elif type(node) == ImageLink:
@@ -243,10 +293,25 @@ class ThreadingSimpleServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServ
     pass
 
 
+def listen(port):
+    httpd = ThreadingSimpleServer(('', port), WikipediaHandler)
+    logger.debug("listening on port {}".format(port))
+    try:
+        while True:
+            sys.stdout.flush()
+            httpd.handle_request()
+
+    except KeyboardInterrupt:
+        logger.debug("KeyboardInterrupt")
+    
+
 def main():  
     global usejsoncache
     global usewikicache
     global userelatedmedia
+    global threaded
+
+    start = datetime.datetime.now()
       
     # Force UTF8 encoding... this is sort of ugly.
     import sys
@@ -289,12 +354,14 @@ def main():
     parser.add_argument("--nojsoncache", default=False, action="store_true", help="Skip the JSON cache")
     parser.add_argument("--nowikicache", default=False, action="store_true", help="Skip the Wiki markup cache")
     parser.add_argument("--norelatedmedia", default=False, action="store_true", help="Skip related media discovery")
+    parser.add_argument("--threaded", default=False, action="store_true", help="Use multithreaded media lookup")
     args = parser.parse_args()
 
     # Yuck
     usejsoncache = args.nojsoncache == False
     usewikicache = args.nowikicache == False
     userelatedmedia = args.norelatedmedia == False
+    threaded = args.threaded
 
     if args.article is not None:    
         article = get_article(args.article)
@@ -316,7 +383,8 @@ def main():
         except KeyboardInterrupt:
             logger.debug("KeyboardInterrupt")
 
-    logger.debug("done")
+    end = datetime.datetime.now()
+    logger.debug("done. Took {}".format(end-start))
 
 if __name__ == "__main__":
     main()
