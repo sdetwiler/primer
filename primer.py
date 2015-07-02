@@ -204,7 +204,7 @@ class Client():
                     
                 if len(media) > 0:
                     # self.block["media"].append(media[0])
-                    self.block["media"] = media
+                    self.block["media"].append(media)
                     self.find_media = False
 
         elif type(node) == ImageLink:

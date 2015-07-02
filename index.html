@@ -175,6 +175,7 @@
 			
 			var gScrubbing = false; // Is the user scrubbing.
 
+			var gDebug = null;		// Debug text DOM element.
 			
 			var gChunks = [];			// All text chunks for the current article.
 			var gCurrChunk = -1;	// ID of the currently playing chunk.
@@ -198,6 +199,8 @@
 				gPlayControls = document.getElementById("playControls");
 				gScrubberProgress = document.getElementById("scrubberProgress");
 				gScrubberHandle = document.getElementById("scrubberHandle");
+				
+				//gDebug = document.getElementById("debug");
 
 				doHome();
 			}
@@ -207,7 +210,7 @@
 			//-------------------------------------------------------------------------
 			function reset()
 			{
-				console.log("reset");
+				log("reset");
 
 				window.speechSynthesis.pause();
 				window.speechSynthesis.cancel();
@@ -223,7 +226,7 @@
 			//-------------------------------------------------------------------------
 			function doHome()
 			{
-				console.log("doHome");
+				log("doHome");
 
 				reset();
 
@@ -241,7 +244,7 @@
 			//-------------------------------------------------------------------------
 			function doSearch()
 			{
-				console.log("doSearch");
+				log("doSearch");
 				
 				search(gQuery.value);
 				return false;
@@ -261,7 +264,7 @@
 
 				var req = new XMLHttpRequest();
 				req.onload = function() {
-					console.log("doSearch.onload");
+					log("doSearch.onload");
 					json = JSON.parse(this.responseText);
 			
 					playArticle(json);
@@ -282,7 +285,7 @@
 				gTitle.innerHTML = decodeURIComponent(article.title).replace("_", " ");
 				gTitle.href = article.url;
 				var chunkId = 0;
-				console.log("doPlay:" + article.title);
+				log("doPlay:" + article.title);
 
 				for(var i=0; i<article.content.length; ++i)
 				{
@@ -298,11 +301,11 @@
 			
 					// Now chunk the text into sentences and assign up to one media item per sentence.
 					var chunks = chunkText(article.content[i].text);
-					console.log(chunks.length + " text chunks")
+					log(chunks.length + " text chunks")
 					for(var c=0; c<chunks.length; ++c)
 					{
-						// console.log("  " + c + ": " + chunks[c]);
-						// console.log(curr.media.length + " media items")
+						// log("  " + c + ": " + chunks[c]);
+						// log(curr.media.length + " media items")
 						if(mediaIdx < curr.media.length)
 						{
 							addMedia(curr.media[mediaIdx], chunkId);
@@ -364,13 +367,22 @@
 				}
 				return chunks;
 			}
+			
+			function log(msg)
+			{
+				console.log(msg);
+				if(gDebug)
+				{
+					gDebug.innerHTML = msg;
+				}
+			}
 
 			//-------------------------------------------------------------------------
 			// Add media to display at the specified chunkId
 			//-------------------------------------------------------------------------
 			function addMedia(mediaItem, chunkId)
 			{
-				console.log("addMedia " + chunkId + " " + mediaItem.url)
+				log("addMedia " + chunkId + " " + mediaItem.url)
 				gMedia[chunkId] = mediaItem;
 			}
 	
@@ -379,11 +391,14 @@
 			//-------------------------------------------------------------------------
 			function showMediaForChunk(chunkId)
 			{
-				console.log("showMediaForChunk:" + chunkId);
+				
+				log("showMediaForChunk:" + chunkId);
 				if(chunkId in gMedia)
 				{
-					med = gMedia[chunkId]
-					console.log(med)
+					log("will showMediaForChunk:" + chunkId);
+					med = gMedia[chunkId][0];
+					console.log(med);
+					// log(med)
 					switch(med.contentType)
 					{
 						case "image/jpeg":
@@ -394,20 +409,22 @@
 							// var img = document.createElement("IMG");
 							// img.onload = function()
 							// {
-							// 	console.log("img onload");
+							// 	log("img onload");
 							// 	gImage.style["background-image"] = "url('" + this.src + "')";
 							// }.bind(img);
 							// img.src = med.url;
 							
 							gCaption.innerHTML = med.caption;
 							break;
+						default:
+							log("failed to showMediaForChunk " + med.contentType + " " + med.url);
 					}
 				}
 			}
 			
 			function onScrubStart()
 			{
-				// console.log("onScrubStart: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop);
+				// log("onScrubStart: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop);
 				gScrubbing = true;
 			}
 			function onScrub(ev)
@@ -415,7 +432,7 @@
 				if(gScrubbing)
 				{
 					window.speechSynthesis.cancel();
-					// console.log("onScrub: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop + " " + window.innerWidth);
+					// log("onScrub: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop + " " + window.innerWidth);
 				
 					var pct = parseInt((ev.clientX / window.innerWidth)*100);
 					setScrubberPercentage(pct);
@@ -428,7 +445,7 @@
 			{
 				if(gScrubbing)
 				{
-					// console.log("onScrubEnd: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop);
+					// log("onScrubEnd: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop);
 					gScrubbing = false;
 					
 					gCurrChunk = parseInt((ev.clientX / window.innerWidth) * gChunks.length);
@@ -438,7 +455,7 @@
 	
 			function setScrubberPercentage(pct)
 			{
-				// console.log("setScrubberPercentage: " + gCurrChunk + " " + gChunks.length + " " + pct);
+				// log("setScrubberPercentage: " + gCurrChunk + " " + gChunks.length + " " + pct);
 				gScrubberProgress.style["width"] = pct + "%";
 			}
 	
@@ -447,7 +464,7 @@
 			//-------------------------------------------------------------------------
 			function playPause()
 			{
-				console.log("playPause");
+				log("playPause");
 				var button = document.getElementById("playpause");
 				if(gPlaying)
 				{
@@ -485,12 +502,12 @@
 					msg.chunkId = gCurrChunk;
 
 					msg.addEventListener("start", function(){
-						console.log("start");
+						log("start");
 						showMediaForChunk(this.chunkId);
 					}.bind(msg));
 
 					msg.addEventListener("end", function(){
-						console.log("end");
+						log("end");
 						if(skipping != true)
 						{
 							playNextChunk();
@@ -499,7 +516,7 @@
 
 					// Hack to get speech synth to work reliably... seriously.
 					// https://code.google.com/p/chromium/issues/detail?id=335907
-					console.log(msg);
+					log(msg);
 					gText.innerHTML = text;
 					window.speechSynthesis.speak(msg);
 				}
@@ -564,6 +581,9 @@
 		<!-- Playback controls Begin -->
 		<footer class="footer" id="playControls">
 			<div class="col-lg-12 col-md-12 col-sm-12">
+				<div class="row">
+					<span id="debug"></caption>
+				</div>
 				<div class="row caption-container">
 					<span id="caption"></caption>
 				</div>
