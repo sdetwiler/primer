@@ -1,11 +1,9 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html class="full" lang="en" id="image">
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="">
     <meta name="author" content="">
 
@@ -24,6 +22,23 @@
     <![endif]-->
 
 		<style>
+		
+		body 
+		{
+/*			margin-top: 50px;*/
+/*			margin-bottom: 50px;*/
+			background: none;
+		}
+
+		.full 
+		{
+/*		  background: url(https://secure.parksandresorts.wdpromedia.com/resize/mwImage/1/900/360/90/wdpromedia.disney.go.com/media/wdpro-assets/dlr/parks-and-tickets/destinations/disneyland-park/disneyland-00-full.jpg?15052013102112) no-repeat center center fixed;*/
+		  -webkit-background-size: cover;
+		  -moz-background-size: cover;
+		  -o-background-size: cover;
+		  background-size: cover;
+		}
+		
 			#content
 			{
 				display:none;
@@ -40,11 +55,71 @@
 			{
 				cursor:pointer;
 			}
+			#playControls
+			{
+				display:none;
+			}
+			#scrubberHandle
+			{
+				padding-top:5px;
+				text-size:30px;
+			}
+			
+			footer 
+			{
+			  position: absolute;
+			  bottom: 0px;
+			  width: 100%;
+			/*  height: 60px;*/
+				color:#ffffff;
+			}
+
+			.scrubber-bg
+			{
+			  height: 30px;
+			  background-color: rgba(0,0,0,0.8);
+			}
+
+			.scrubber-progress
+			{
+			  height: 30px;
+			  background-color: rgba(255,0,0,1.0);
+				width:0%;
+				text-align:right;
+				font-size:20px;
+			}
+
+			.playback-controls
+			{
+				font-size:30px;
+	
+			}
+
+			.playback-controls-container
+			{
+			  height: 40px;
+				padding-left:10px;
+			  background-color: rgba(0,0,0,0.8);
+				text-align:left;
+			}
+
+			.caption-container
+			{
+				padding-right:20px;
+			  background-color: rgba(0,0,0,0.5);
+				text-align:right;
+			}
+			
+			.header-info
+			{
+			  background-color: rgba(0,0,0,0.5);
+			}
+			
 		</style>
 			
 			
 		<style>
-			html
+/*			html
 			{
 			    height:100%;
 			}
@@ -54,8 +129,8 @@
 			    height:100%;
 			    margin:0;
 			}
-	
-			.fullscreen
+*/	
+/*			.fullscreen
 			{
 			    width:100%;
 			    height:100%;
@@ -66,39 +141,9 @@
 			    overflow:hidden;
 				position:absolute;
 			}
+*/
 		</style>
 
-		<script>
-
-		function resizeFullscreen()
-		{
-		    var windowH = window.height;
-			var all = document.getElementsByClassName("fullscreen");
-			for(var i=0; i<all.length; ++i)
-			{
-				var curr = all[i];
-		        var currWidth = curr.offsetWidth;
-		        var currHeight = curr.offsetHeight;
-		        var imgWidth = curr.getAttribute("sourceWidth");
-		        var imgHeight = curr.getAttribute("sourceHeight");
-		        var ratio = imgWidth / imgHeight;
-
-		        imgHeight = currHeight;
-		        imgWidth = imgHeight * ratio;
-		        if(currWidth > imgWidth)
-				{
-		            imgWidth = currWidth;
-		            imgHeight = imgWidth / ratio;
-		        }
-		        curr.style["background-size"] =  imgWidth + "px " + imgHeight + "px";
-		    }
-		}
-
-		window.addEventListener("load", resizeFullscreen);
-		window.addEventListener("resize", resizeFullscreen);
-		window.addEventListener("focus", resizeFullscreen);
-
-		</script>
 			
 
 		<script>
@@ -121,8 +166,15 @@
 			var gLoading;					// Loading screen DOM element.
 			var gQuery;						// Query string input DOM element.
 			var gImage;						// Article image DOM element.
+			var gText;						// Current article text chunk.
 			var gCaption;					// Media caption DOM element.
 			var gTitle;						// Article title DOM element.
+			var gPlayControls; 		// Playback controls container DOM element.
+			var gScrubberProgress;// Playback scrubber progress bar DOM element.
+			var gScrubberHandle;	// Playback scrubber progress bar handle DOM element.
+			
+			var gScrubbing = false; // Is the user scrubbing.
+
 			
 			var gChunks = [];			// All text chunks for the current article.
 			var gCurrChunk = -1;	// ID of the currently playing chunk.
@@ -139,8 +191,13 @@
 				gLoading = document.getElementById("loading");
 				gQuery = document.getElementById("query");
 				gImage = document.getElementById("image");
+				gText = document.getElementById("currText");
 				gCaption = document.getElementById("caption");
 				gTitle = document.getElementById("title");
+				
+				gPlayControls = document.getElementById("playControls");
+				gScrubberProgress = document.getElementById("scrubberProgress");
+				gScrubberHandle = document.getElementById("scrubberHandle");
 
 				doHome();
 			}
@@ -150,7 +207,7 @@
 			//-------------------------------------------------------------------------
 			function reset()
 			{
-				console.log("doReset");
+				console.log("reset");
 
 				window.speechSynthesis.pause();
 				window.speechSynthesis.cancel();
@@ -170,10 +227,13 @@
 
 				reset();
 
+				gImage.style["background-image"] = "";
+
 				gQuery.value = "";
 				gCover.style.display="block";
 				gContent.style.display="none";
 				gLoading.style.display="none";
+				gPlayControls.style.display="none";
 			}
 			
 			//-------------------------------------------------------------------------
@@ -197,6 +257,7 @@
 				gCover.style.display="none";
 				gContent.style.display="none";
 				gLoading.style.display="block";
+				gPlayControls.style.display="none";
 
 				var req = new XMLHttpRequest();
 				req.onload = function() {
@@ -263,6 +324,7 @@
 				gCover.style.display="none";
 				gContent.style.display="block";
 				gLoading.style.display="none";
+				gPlayControls.style.display="block";				
 			}
 			
 			
@@ -328,49 +390,56 @@
 						case "image/png":
 						case "image/gif":
 						case "image/svg+xml":
-							var img = document.createElement("IMG");
-							img.onload = function()
-							{
-								console.log("img onload");
-								console.log(gImage);
-								gImage.setAttribute("sourceWidth", this.width);
-								gImage.setAttribute("sourceHeight", this.height);
-								gImage.style["background-image"] = "url('" + this.src + "')";
-								resizeFullscreen();
-							}.bind(img);
-							img.src = med.url;
+							gImage.style["background-image"] = "url('" + med.url + "')";
+							// var img = document.createElement("IMG");
+							// img.onload = function()
+							// {
+							// 	console.log("img onload");
+							// 	gImage.style["background-image"] = "url('" + this.src + "')";
+							// }.bind(img);
+							// img.src = med.url;
 							
 							gCaption.innerHTML = med.caption;
 							break;
 					}
 				}
 			}
-
-			//-------------------------------------------------------------------------
-			// Skip to and play the previous chunk.
-			//-------------------------------------------------------------------------
-			function goPrevious()
+			
+			function onScrubStart()
 			{
-				skipping = true;
-				window.speechSynthesis.cancel();
-				gCurrChunk-=2;
-				if(gCurrChunk < 0)
-				{
-					gCurrChunk = 0;
-				}
-		
-				playNextChunk();
+				// console.log("onScrubStart: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop);
+				gScrubbing = true;
 			}
-
-			//-------------------------------------------------------------------------
-			// Skip to and play the next chunk.
-			//-------------------------------------------------------------------------
-			function goNext()
+			function onScrub(ev)
 			{
-				skipping = true;
-				gCurrChunk--;
-				window.speechSynthesis.cancel();
-				playNextChunk();
+				if(gScrubbing)
+				{
+					window.speechSynthesis.cancel();
+					// console.log("onScrub: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop + " " + window.innerWidth);
+				
+					var pct = parseInt((ev.clientX / window.innerWidth)*100);
+					setScrubberPercentage(pct);
+
+					var chunkId = parseInt((ev.clientX / window.innerWidth) * gChunks.length);
+					showMediaForChunk(chunkId);
+				}
+			}
+			function onScrubEnd(ev)
+			{
+				if(gScrubbing)
+				{
+					// console.log("onScrubEnd: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop);
+					gScrubbing = false;
+					
+					gCurrChunk = parseInt((ev.clientX / window.innerWidth) * gChunks.length);
+					playNextChunk();
+				}
+			}
+	
+			function setScrubberPercentage(pct)
+			{
+				// console.log("setScrubberPercentage: " + gCurrChunk + " " + gChunks.length + " " + pct);
+				gScrubberProgress.style["width"] = pct + "%";
 			}
 	
 			//-------------------------------------------------------------------------
@@ -378,17 +447,24 @@
 			//-------------------------------------------------------------------------
 			function playPause()
 			{
+				console.log("playPause");
 				var button = document.getElementById("playpause");
-		
-				if(window.speechSynthesis.speaking)
+				if(gPlaying)
 				{
 					window.speechSynthesis.pause();
-					playpause.value=">";
+					gPlaying = false;
+					button.setAttribute("class", "glyphicon glyphicon-play playback-controls");
 				}
-				else //if(window.speechSynthesis.paused)
+				
+				else
 				{
-					window.speechSynthesis.play();
-					playpause.value="||";
+					window.speechSynthesis.resume();
+					if(window.speechSynthesis.pending == false)
+					{
+						playNextChunk();
+					}
+					gPlaying = true;
+					button.setAttribute("class", "glyphicon glyphicon-pause playback-controls");
 				}
 			}
 	
@@ -398,13 +474,14 @@
 			//-------------------------------------------------------------------------
 			function playNextChunk()
 			{
-				if(gCurrChunk < gChunks.length)
+				if(gCurrChunk < gChunks.length && !gScrubbing)
 				{
 					gPlaying = true;
 					++gCurrChunk;
 					skipping = false;
 			
-					var msg = new SpeechSynthesisUtterance(gChunks[gCurrChunk]);
+					var text = gChunks[gCurrChunk];
+					var msg = new SpeechSynthesisUtterance(text);
 					msg.chunkId = gCurrChunk;
 
 					msg.addEventListener("start", function(){
@@ -423,9 +500,11 @@
 					// Hack to get speech synth to work reliably... seriously.
 					// https://code.google.com/p/chromium/issues/detail?id=335907
 					console.log(msg);
-			
+					gText.innerHTML = text;
 					window.speechSynthesis.speak(msg);
 				}
+				var pct = parseInt((gCurrChunk/gChunks.length)*100);
+				setScrubberPercentage(pct);
 			}
 			
 			function manualPlay()
@@ -438,73 +517,72 @@
 			</script>
   </head>
 
-  <body onload="init()">
-			<div id="image" class="fullscreen" src="assets/play.png" onclick="manualPlay()"></div>
+  <body onload="init()" onmousemove="onScrub(event)" onmouseup="onScrubEnd(event)">
+					
+		<!-- Cover Screen Begin -->
+	  <div class="inner cover" id="cover">
+	    <h1 class="cover-heading">The Primer</h1>
+	    <p class="lead">Discover and explore all of human knowledge.</p>
+	    <p class="lead">
+				<form onsubmit="return doSearch()">
+					<div class="row">
+						<div class="col-xs-12 col-sm-10 col-lg-10">
+							<input type="text" id="query" class="form-control" placeholder="Search" required autofocus>
+						</div>
+						<div class="col-xs-6 col-sm-2 col-lg-2">
+							<input type="submit" value="Go" class="form-control">
+						</div>
+					</div>
+				</form>
+	    </p>
+	  </div>
+		<!-- Cover Screen End -->
 
-    <div class="site-wrapper">
-
-      <div class="site-wrapper-inner">
-
-        <div class="cover-container">
-
-          <div class="masthead clearfix">
-            <div class="inner">
-              <h3 class="masthead-brand">The Primer</h3>
-              <nav>
-                <ul class="nav masthead-nav">
-                  <li class="active"><a href="/" onclick="doHome()">Home</a></li>
-                </ul>
-              </nav>
-            </div>
-          </div>
-					<!-- Cover Screen Begin -->
-          <div class="inner cover" id="cover">
-            <h1 class="cover-heading">The Primer</h1>
-            <p class="lead">Discover and explore all of human knowledge.</p>
-            <p class="lead">
-							<form onsubmit="return doSearch()">
-								<div class="row">
-									<div class="col-xs-12 col-sm-10 col-lg-10">
-										<input type="text" id="query" class="form-control" placeholder="Search" required autofocus>
-									</div>
-									<div class="col-xs-6 col-sm-2 col-lg-2">
-										<input type="submit" value="Go" class="form-control">
-									</div>
-								</div>
-							</form>
-            </p>
-          </div>
-					<!-- Cover Screen End -->
+		<!-- Content Screen Begin -->
+	  <div class="container-fluid header-info" id="content">
+	      <div class="row">
+	          <div class="col-md-10 text-left">
+	              <h1 id="title"></h1>
+	              <p id="currText"></p>
+	          </div>
+						<div class="col-md-2 text-right" style="font-size:25px;padding:10px;cursor:pointer"><span onclick="doHome()" class="glyphicon glyphicon-search"></div>
+	      </div>
+	      <!-- /.row -->
+	  </div>
+		<!-- Content Screen End -->
 
 
-					<!-- Content Screen Begin -->
-          <div class="inner cover" id="content">
-            <h1 class="cover-heading"><a id="title" href="#"></a></h1>
-			<p class="lead" id="caption" onclick="search(this.innerHTML)"></p>
-          </div>
-					<!-- Content Screen End -->
+		<!-- Loading Screen Begin -->
+	  <div class="inner cover" id="loading">
+	    <h1 class="cover-heading">Building Article</h1>
+				<img class="center-block img-responsive" src="assets/spinner.gif">
+				<p class="lead" onclick="search(this.innerHTML)">Stand by, this could take several minutes.</p>
+	  </div>
+		<!-- Content Screen End -->
 
 
-					<!-- Loading Screen Begin -->
-          <div class="inner cover" id="loading">
-            <h1 class="cover-heading">Building Article</h1>
-							<img class="center-block img-responsive" src="assets/spinner.gif">
-							<p class="lead" id="caption" onclick="search(this.innerHTML)">Stand by, this could take several minutes.</p>
-          </div>
-					<!-- Content Screen End -->
+		<!-- Playback controls Begin -->
+		<footer class="footer" id="playControls">
+			<div class="col-lg-12 col-md-12 col-sm-12">
+				<div class="row caption-container">
+					<span id="caption"></caption>
+				</div>
+				<div class="row scrubber-bg">
+					<div class="scrubber-progress" id="scrubberProgress"><span id="scrubberHandle" class="glyphicon glyphicon-record" onmousedown="onScrubStart()"></span></div>
+				</div>
 
+				<div class="row playback-controls-container">
+					<div class="col-md-2 text-left">
+						<span id="playpause" class="glyphicon glyphicon-pause playback-controls" onclick="playPause()"></span>
+					</div>
+					<div class="col-md-10" style="text-align:right">
+						Content from <a href="https://www.wikipedia.org">Wikipedia</a>, the free encyclopedia.
+					</div>
+				</div>
 
-          <div class="mastfoot">
-            <div class="inner">
-              <p>Content from <a href="https://www.wikipedia.org">Wikipedia</a>, the free encyclopedia.</p>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
+			</div>
+		</footer>
+		<!-- Playback controls End -->
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
@@ -514,5 +592,6 @@
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <!-- <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script> -->
+		
   </body>
 </html>
