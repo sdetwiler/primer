@@ -23,7 +23,7 @@
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
 
-			<style>
+		<style>
 			#content
 			{
 				display:none;
@@ -40,7 +40,66 @@
 			{
 				cursor:pointer;
 			}
-			</style>
+		</style>
+			
+			
+		<style>
+			html
+			{
+			    height:100%;
+			}
+
+			body
+			{
+			    height:100%;
+			    margin:0;
+			}
+	
+			.fullscreen
+			{
+			    width:100%;
+			    height:100%;
+			    min-height:100%;
+			    background-repeat:no-repeat;
+			    background-position:50% 50%;
+			    background-position:50% 50%\9 !important;
+			    overflow:hidden;
+				position:absolute;
+			}
+		</style>
+
+		<script>
+
+		function resizeFullscreen()
+		{
+		    var windowH = window.height;
+			var all = document.getElementsByClassName("fullscreen");
+			for(var i=0; i<all.length; ++i)
+			{
+				var curr = all[i];
+		        var currWidth = curr.offsetWidth;
+		        var currHeight = curr.offsetHeight;
+		        var imgWidth = curr.getAttribute("sourceWidth");
+		        var imgHeight = curr.getAttribute("sourceHeight");
+		        var ratio = imgWidth / imgHeight;
+
+		        imgHeight = currHeight;
+		        imgWidth = imgHeight * ratio;
+		        if(currWidth > imgWidth)
+				{
+		            imgWidth = currWidth;
+		            imgHeight = imgWidth / ratio;
+		        }
+		        curr.style["background-size"] =  imgWidth + "px " + imgHeight + "px";
+		    }
+		}
+
+		window.addEventListener("load", resizeFullscreen);
+		window.addEventListener("resize", resizeFullscreen);
+		window.addEventListener("focus", resizeFullscreen);
+
+		</script>
+			
 
 		<script>
 		  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
@@ -269,7 +328,18 @@
 						case "image/png":
 						case "image/gif":
 						case "image/svg+xml":
-							gImage.src = med.url;
+							var img = document.createElement("IMG");
+							img.onload = function()
+							{
+								console.log("img onload");
+								console.log(gImage);
+								gImage.setAttribute("sourceWidth", this.width);
+								gImage.setAttribute("sourceHeight", this.height);
+								gImage.style["background-image"] = "url('" + this.src + "')";
+								resizeFullscreen();
+							}.bind(img);
+							img.src = med.url;
+							
 							gCaption.innerHTML = med.caption;
 							break;
 					}
@@ -369,6 +439,7 @@
   </head>
 
   <body onload="init()">
+			<div id="image" class="fullscreen" src="assets/play.png" onclick="manualPlay()"></div>
 
     <div class="site-wrapper">
 
@@ -409,8 +480,7 @@
 					<!-- Content Screen Begin -->
           <div class="inner cover" id="content">
             <h1 class="cover-heading"><a id="title" href="#"></a></h1>
-							<img id="image" class="center-block img-responsive" src="assets/play.png" onclick="manualPlay()">
-							<p class="lead" id="caption" onclick="search(this.innerHTML)"></p>
+			<p class="lead" id="caption" onclick="search(this.innerHTML)"></p>
           </div>
 					<!-- Content Screen End -->
 
