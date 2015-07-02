@@ -354,14 +354,14 @@ def main():
     parser.add_argument("--nojsoncache", default=False, action="store_true", help="Skip the JSON cache")
     parser.add_argument("--nowikicache", default=False, action="store_true", help="Skip the Wiki markup cache")
     parser.add_argument("--norelatedmedia", default=False, action="store_true", help="Skip related media discovery")
-    parser.add_argument("--threaded", default=False, action="store_true", help="Use multithreaded media lookup")
+    parser.add_argument("--nothreaded", default=False, action="store_true", help="Disable multithreaded media lookup")
     args = parser.parse_args()
 
     # Yuck
     usejsoncache = args.nojsoncache == False
     usewikicache = args.nowikicache == False
     userelatedmedia = args.norelatedmedia == False
-    threaded = args.threaded
+    threaded = args.nothreaded == False
 
     if args.article is not None:    
         article = get_article(args.article)
