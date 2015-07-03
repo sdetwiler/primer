@@ -277,6 +277,13 @@
 				var chunkId = 0;
 				log("doPlay:" + article.title);
 
+				if(article.content.length && (article.content[0].text.indexOf("REDIRECT")==0))
+				{
+					var redirect = article.content[0].text.substr(9);
+					search(redirect);
+					return;
+				}
+
 				for(var i=0; i<article.content.length; ++i)
 				{
 					var curr = article.content[i];
@@ -616,7 +623,7 @@
 					</div>
 				</form>
 	    </p>
-		<p class="lead">Don't know where to start? Try <span class="recommendation" onclick="populate(event)">Paris</span>, <span class="recommendation" onclick="populate(event)">Disneyland</span>, <span class="recommendation" onclick="populate(event)">Oakland, California</span>, <span class="recommendation" onclick="populate(event)">World War I</span>, or enter your favorite topic. 
+		<p class="lead">Don't know where to start? Try <span class="recommendation" onclick="populate(event)">Paris</span>, <span class="recommendation" onclick="populate(event)">Disneyland</span>, <span class="recommendation" onclick="populate(event)">Oakland</span>, <span class="recommendation" onclick="populate(event)">World War I</span>, or enter your favorite topic. 
 		</p>
 	  </div>
 		<!-- Cover Screen End -->
