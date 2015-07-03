@@ -75,6 +75,12 @@
 				color:#ffffff;
 			}
 
+			.recommendation
+			{
+				cursor:pointer;
+				font-weight:bold;
+			}
+
 			.scrubber-bg
 			{
 			  height: 30px;
@@ -109,6 +115,7 @@
 				padding-right:20px;
 			  background-color: rgba(0,0,0,0.5);
 				text-align:right;
+				font-size:40px;
 			}
 			
 			.header-info
@@ -144,6 +151,7 @@
 			var gPlayControls; 		// Playback controls container DOM element.
 			var gScrubberProgress;// Playback scrubber progress bar DOM element.
 			var gScrubberHandle;	// Playback scrubber progress bar handle DOM element.
+			var gLoadingHeading;
 			
 			var gScrubbing = false; // Is the user scrubbing.
 
@@ -172,6 +180,7 @@
 				gScrubberProgress = document.getElementById("scrubberProgress");
 				gScrubberHandle = document.getElementById("scrubberHandle");
 				
+				gLoadingHeading = document.getElementById("loadingHeading");
 				//gDebug = document.getElementById("debug");
 
 				doHome();
@@ -234,6 +243,7 @@
 				gLoading.style.display="block";
 				gPlayControls.style.display="none";
 
+				gLoadingHeading.innerHTML = "Building Article for " + query;
 				var req = new XMLHttpRequest();
 				req.onload = function() {
 					log("doSearch.onload");
@@ -248,6 +258,14 @@
 
 				return false;
 			}
+			
+			function populate(evt)
+			{
+				gQuery.value = evt.target.innerHTML;
+				doSearch();
+			}
+				
+			
 			
 			//-------------------------------------------------------------------------
 			// Play the specified article.
@@ -425,6 +443,7 @@
 							img.src = med.url;
 							
 							gCaption.innerHTML = med.caption;
+							gCaption.article = med.article;
 							break;
 						default:
 							log("failed to showMediaForChunk " + med.contentType + " " + med.url);
@@ -597,6 +616,8 @@
 					</div>
 				</form>
 	    </p>
+		<p class="lead">Don't know where to start? Try <span class="recommendation" onclick="populate(event)">Paris</span>, <span class="recommendation" onclick="populate(event)">Disneyland</span>, <span class="recommendation" onclick="populate(event)">Oakland, California</span>, <span class="recommendation" onclick="populate(event)">World War I</span>, or enter your favorite topic. 
+		</p>
 	  </div>
 		<!-- Cover Screen End -->
 
@@ -616,7 +637,7 @@
 
 		<!-- Loading Screen Begin -->
 	  <div class="inner cover" id="loading">
-	    <h1 class="cover-heading">Building Article</h1>
+	    <h1 class="cover-heading" id="loadingHeading">Building Article</h1>
 				<img class="center-block img-responsive" src="assets/spinner.gif">
 				<p class="lead" onclick="search(this.innerHTML)">Stand by, this could take several minutes.</p>
 	  </div>
@@ -627,10 +648,10 @@
 		<footer class="footer" id="playControls">
 			<div class="col-lg-12 col-md-12 col-sm-12">
 				<div class="row">
-					<span id="debug"></caption>
+					<span id="debug"></span>
 				</div>
 				<div class="row caption-container">
-					<span id="caption"></caption>
+					<span style="font-size:18px">learn more about</span> <span id="caption" article="" onclick="search(this.article)"></span>
 				</div>
 				<div class="row scrubber-bg">
 					<div class="scrubber-progress" id="scrubberProgress"><span id="scrubberHandle" class="glyphicon glyphicon-record" onmousedown="onScrubStart()"></span></div>
