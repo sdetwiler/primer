@@ -20,6 +20,8 @@ from mwlib import wiki
 from mwlib.parser.nodes import *
 from mwlib.refine import core, compat
 from mwlib.expander import expandstr
+from mwlib.templ import *
+from mwlib.templ.scanner import symbols, tokenize
 
 # import StringIO
 
@@ -54,10 +56,28 @@ class Client():
         else:
             markup = self.get_markup_for_topic(topic)
 
+            templParser = mwlib.templ.parser.Parser(markup)
+            templates = templParser.parse()
+            print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+            markup = ""
+            for t in templates:
+                # print "==>{} {}<==".format(type(t), t)
+                if isinstance(t, unicode):
+                    markup+= t
+
+                elif isinstance(t, mwlib.templ.nodes.Template):
+                    print "==>{}<==".format(t[0])
+                    if t[0] == "Wide image":
+                        print "  -->{}<--".format(t[1][0])
+                        markup+= " [[File:{}]] ".format(t[1][0])
+
+            # print article
+            print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+
             markup = expandstr(markup)
             # print markup
-            
             article = compat.parse_txt(markup)
+
             self.reset()
             if threaded:
                 self.build_related_media(article)
@@ -178,7 +198,8 @@ class Client():
             # print "magic {}".format(node)
             self.block["text"] = self.block["text"].strip()
             # if there is text that isn't a template reference or if there is media, add the block
-            if (len(self.block["text"]) and self.block["text"][0] is not "{") or len(self.block["media"]):
+            # if (len(self.block["text"]) and self.block["text"][0] is not "{") or len(self.block["media"]):
+            if (len(self.block["text"])) or len(self.block["media"]):
                 self.content.append(self.block)
                 # print "##start"
                 # print self.block["text"]
