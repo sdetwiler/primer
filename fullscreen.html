@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script> -->
+  <meta charset="utf-8">
+  <title>Fullscreen backgrounds with centered content</title>
+  <meta name="description" content="Fullscreen backgrounds with centered content">
+
+
+<style>
+	html
+	{
+	    height:100%;
+	}
+
+	body
+	{
+	    height:100%;
+	    margin:0;
+	}
+	
+	.fullscreen
+	{
+	    width:100%;
+	    height:100%;
+	    min-height:100%;
+	    background-repeat:no-repeat;
+	    background-position:50% 50%;
+	    background-position:50% 50%\9 !important;
+	    overflow:hidden;
+	}
+
+
+</style>
+
+<script>
+
+function resizeFullscreen()
+{
+    var windowH = window.height;
+	var all = document.getElementsByClassName("fullscreen");
+	for(var i=0; i<all.length; ++i)
+	{
+		var curr = all[i];
+        var currWidth = curr.offsetWidth;
+        var currHeight = curr.offsetHeight;
+        var imgWidth = curr.getAttribute("sourceWidth");
+        var imgHeight = curr.getAttribute("sourceHeight");
+        var ratio = imgWidth / imgHeight;
+
+        imgHeight = currHeight;
+        imgWidth = imgHeight * ratio;
+        if(currWidth > imgWidth)
+		{
+            imgWidth = currWidth;
+            imgHeight = imgWidth / ratio;
+        }
+        curr.style["background-size"] =  imgWidth + "px " + imgHeight + "px";
+    }
+}
+
+window.addEventListener("load", resizeFullscreen);
+window.addEventListener("resize", resizeFullscreen);
+window.addEventListener("focus", resizeFullscreen);
+
+</script>
+</head>
+  
+<body>
+
+<div class="fullscreen" style="background-image:url('https://upload.wikimedia.org/wikipedia/commons/8/8a/Earhart.jpg');" sourceWidth="1126" sourceHeight="1509">
+</div>
+</body>
+</html>
