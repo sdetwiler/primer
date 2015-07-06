@@ -397,7 +397,7 @@ def main():
             open(args.article + ".json", "w").write(article)
 
     if args.server is True:
-        PORT = args.port
+        PORT = int(args.port)
 
         httpd = ThreadingSimpleServer(('', PORT), WikipediaHandler)
         logger.debug("serving at port {}".format(PORT))
