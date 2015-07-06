@@ -7,10 +7,12 @@ import argparse
 import json
 
 import requests
+import urlparse
 
 import threading
 
 import datetime
+import time 
 
 import BaseHTTPServer
 import SimpleHTTPServer
@@ -23,20 +25,24 @@ from mwlib.expander import expandstr
 from mwlib.templ import *
 from mwlib.templ.scanner import symbols, tokenize
 
-# import StringIO
 
 logger = logging.getLogger("piratestudios.primer")
 
 # Bam, right in the global scope...        
 usejsoncache = True
 usewikicache = True
-userelatedmedia = True 
+userelatedmedia = True
 threaded = False
+
+
+random_image = None
+random_image_updated = 0
 
 class Client():
     def __init__(self):
         self.content = []
         self.related_media = {}
+
 
     # Get the JSON representation of the article for the specified topic.
     def get_article(self, topic):
@@ -278,6 +284,33 @@ class Client():
             open(filename, "w").write(markup)
         return markup
     
+    # Yes, this is sloppy.
+    def get_random_image(self):
+        global random_image_updated
+        global random_image
+        now = time.time()
+        d = now - random_image_updated
+        if d > 60: # Refresh every minute.
+            i = 0
+            media = []
+            while len(media) == 0 and i<100:
+                url = "https://en.wikipedia.org/wiki/Special:Random?action=raw"
+                response = requests.get(url, timeout=2.0)
+                markup = response.text
+                topic = urlparse.parse_qs(urlparse.urlparse(response.url).query)["title"]
+                # print markup
+                article = compat.parse_txt(markup)
+                self.depth_find_media(article, topic, media)
+                i+=1
+        
+            if len(media) > 0:
+                random_image = media[0]
+                random_image_updated = now
+
+        return random_image
+        
+        
+
 
 # Returns the JSON formatted article.
 def get_article(topic):
@@ -285,6 +318,13 @@ def get_article(topic):
     article = client.get_article(topic)
 
     return article
+
+# Returns a random image url from Wikipedia.
+def get_random_image():
+    client = Client()
+    data = client.get_random_image()
+    return json.dumps(data, indent=2)
+    
     
 
 class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -301,6 +341,14 @@ class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
         elif self.path == "/favicon.ico":
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+
+        # random background request.
+        elif self.path.startswith("/r/"):
+            data = get_random_image()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(data)
             
         # Data request.
         elif self.path.startswith("/d/"):
@@ -375,6 +423,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--article", default=None, help="The article to generate. (World_War_I)")
     parser.add_argument("--file", action="store_true", default=False, help="Write data to files")
+    parser.add_argument("--random", action="store_true", default=False, help="Get random image from Wikipedia.")
     parser.add_argument("--server", default=False, action="store_true", help="Run interactive HTTP server")
     parser.add_argument("--port", default=8000, help="The port listened to by the server. Defaults to 8000.")
     parser.add_argument("--nojsoncache", default=False, action="store_true", help="Skip the JSON cache")
@@ -388,6 +437,11 @@ def main():
     usewikicache = args.nowikicache == False
     userelatedmedia = args.norelatedmedia == False
     threaded = args.nothreaded == False
+
+    if args.random is True:
+        client = Client()
+        article = client.get_random_image()
+        
 
     if args.article is not None:    
         article = get_article(args.article)
