@@ -605,6 +605,12 @@
 			
 					var text = gChunks[gCurrChunk];
 					var msg = new SpeechSynthesisUtterance(text);
+
+					var iOS = ( navigator.userAgent.match(/iPad|iPhone|iPod/g) ? true : false );
+					if(iOS)
+					{
+						msg.rate = 0.5;
+					}
 					msg.chunkId = gCurrChunk;
 
 					msg.addEventListener("start", function(){
