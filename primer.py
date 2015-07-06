@@ -376,6 +376,7 @@ def main():
     parser.add_argument("--article", default=None, help="The article to generate. (World_War_I)")
     parser.add_argument("--file", action="store_true", default=False, help="Write data to files")
     parser.add_argument("--server", default=False, action="store_true", help="Run interactive HTTP server")
+    parser.add_argument("--port", default=8000, help="The port listened to by the server. Defaults to 8000.")
     parser.add_argument("--nojsoncache", default=False, action="store_true", help="Skip the JSON cache")
     parser.add_argument("--nowikicache", default=False, action="store_true", help="Skip the Wiki markup cache")
     parser.add_argument("--norelatedmedia", default=False, action="store_true", help="Skip related media discovery")
@@ -396,7 +397,7 @@ def main():
             open(args.article + ".json", "w").write(article)
 
     if args.server is True:
-        PORT = 8000
+        PORT = args.port
 
         httpd = ThreadingSimpleServer(('', PORT), WikipediaHandler)
         logger.debug("serving at port {}".format(PORT))
