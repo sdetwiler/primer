@@ -290,17 +290,21 @@ def get_article(topic):
 class WikipediaHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     def do_GET(self):
         print self.path
-        if self.path == '/':
+        # Article Request.
+        if self.path == '/' or self.path.startswith("/a/"):
+            print "serving index.html"
             self.path = '/index.html'
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
+
+        # Static asset request.
         elif self.path.startswith("/assets/"):
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
         elif self.path == "/favicon.ico":
             return SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self)
             
-            
-        else:
-            topic = self.path[1:]
+        # Data request.
+        elif self.path.startswith("/d/"):
+            topic = self.path.split("/")[2]
             # print topic
             article = get_article(topic)
             # print article

@@ -13,7 +13,7 @@
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 
     <!-- Custom styles for this template -->
-    <link href="assets/cover.css" rel="stylesheet">
+    <link href="/assets/cover.css" rel="stylesheet">
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -183,8 +183,39 @@
 				gLoadingHeading = document.getElementById("loadingHeading");
 				//gDebug = document.getElementById("debug");
 
-				doHome();
+				syncNav();
 			}
+			
+			function syncNav()
+			{
+				if(location.pathname == "/")
+				{
+					doHome();
+				}
+				else
+				{
+					
+					var tokens = location.pathname.split("/")
+					var query = tokens[tokens.length-1];
+					search(query);
+				}
+			}
+
+			function updateHistory(path)
+			{
+				if(location.pathname != path)
+				{
+					history.pushState(null,null, path);
+				}
+			}
+			
+			function onPopState()
+			{
+				console.log("onPopState: " + location.pathname);
+				syncNav();
+			}
+			window.onpopstate = this.onPopState.bind(this);
+			
 			
 			//-------------------------------------------------------------------------
 			// Reset to the search screen.
@@ -201,13 +232,15 @@
 				gMedia = {};
 				gPlaying = false;
 			}
-
+			
 			//-------------------------------------------------------------------------
 			// Go to the home screen.
 			//-------------------------------------------------------------------------
 			function doHome()
 			{
 				log("doHome");
+
+				updateHistory("/");
 
 				reset();
 
@@ -238,6 +271,8 @@
 			{
 				reset();
 				
+				updateHistory("/a/" + query);
+
 				gCover.style.display="none";
 				gContent.style.display="none";
 				gLoading.style.display="block";
@@ -253,7 +288,7 @@
 				}
 		
 				var query = query.replace(" ", "_");
-				req.open("GET", query, true);
+				req.open("GET", "/d/"+query, true);
 				req.send();
 
 				return false;
@@ -645,7 +680,7 @@
 		<!-- Loading Screen Begin -->
 	  <div class="inner cover" id="loading">
 	    <h1 class="cover-heading" id="loadingHeading">Building Article</h1>
-				<img class="center-block img-responsive" src="assets/spinner.gif">
+				<img class="center-block img-responsive" src="/assets/spinner.gif">
 				<p class="lead" onclick="search(this.innerHTML)">Stand by, this could take several minutes.</p>
 	  </div>
 		<!-- Content Screen End -->
