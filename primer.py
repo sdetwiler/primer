@@ -17,6 +17,7 @@ import time
 import BaseHTTPServer
 import SimpleHTTPServer
 import SocketServer
+import ssl
 
 from mwlib import wiki
 from mwlib.parser.nodes import *
@@ -42,6 +43,7 @@ class Client():
     def __init__(self):
         self.content = []
         self.related_media = {}
+        self.wiki_version = "en"
 
 
     # Get the JSON representation of the article for the specified topic.
@@ -49,7 +51,7 @@ class Client():
         global usejsoncache
         global threaded
         
-        cacheDir = "./json_cache"
+        cacheDir = "./json_cache/{}".format(self.wiki_version)
         try:
             os.mkdir(cacheDir)
         except:
@@ -91,7 +93,7 @@ class Client():
                 print "Not performing threaded processing"
             self.depth_first(article)
         
-            obj = {"content":self.content, "title":topic, "url":"https://en.wikipedia.org/wiki/{}".format(topic), "url":"https://en.wikipedia.org/wiki/{}".format(topic)}
+            obj = {"content":self.content, "title":topic, "url":"https://{}.wikipedia.org/wiki/{}".format(self.wiki_version, topic), "url":"https://{}.wikipedia.org/wiki/{}".format(self.wiki_version, topic)}
             js = json.dumps(obj, indent=2)
             
             open(filename, "w").write(js)
@@ -265,9 +267,9 @@ class Client():
     # Get the wiki markup for the specified topic.
     def get_markup_for_topic(self, topic):
         global usewikicache
-        url = "https://en.wikipedia.org/wiki/{}?action=raw".format(topic)
+        url = "https://{}.wikipedia.org/wiki/{}?action=raw".format(self.wiki_version, topic)
 
-        cacheDir = "./markup_cache"
+        cacheDir = "./markup_cache/{}".format(self.wiki_version)
         try:
             os.mkdir(cacheDir)
         except:
@@ -294,7 +296,7 @@ class Client():
             i = 0
             media = []
             while len(media) == 0 and i<100:
-                url = "https://en.wikipedia.org/wiki/Special:Random?action=raw"
+                url = "https://{}.wikipedia.org/wiki/Special:Random?action=raw".format(self.wiki_version)
                 response = requests.get(url, timeout=2.0)
                 markup = response.text
                 topic = urlparse.parse_qs(urlparse.urlparse(response.url).query)["title"]
@@ -425,6 +427,7 @@ def main():
     parser.add_argument("--file", action="store_true", default=False, help="Write data to files")
     parser.add_argument("--random", action="store_true", default=False, help="Get random image from Wikipedia.")
     parser.add_argument("--server", default=False, action="store_true", help="Run interactive HTTP server")
+    parser.add_argument("--https", default=False, action="store_true", help="Serve using HTTPS")
     parser.add_argument("--port", default=8000, help="The port listened to by the server. Defaults to 8000.")
     parser.add_argument("--nojsoncache", default=False, action="store_true", help="Skip the JSON cache")
     parser.add_argument("--nowikicache", default=False, action="store_true", help="Skip the Wiki markup cache")
@@ -454,6 +457,10 @@ def main():
         PORT = int(args.port)
 
         httpd = ThreadingSimpleServer(('', PORT), WikipediaHandler)
+        if args.https is True:
+            logger.info("Enabling HTTPS support")
+            httpd.socket = ssl.wrap_socket(httpd.socket, certfile="server.pem", server_side=True)
+            
         logger.debug("serving at port {}".format(PORT))
         try:
             while True:

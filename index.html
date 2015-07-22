@@ -91,6 +91,9 @@
 			{
 			  height: 30px;
 			  background-color: rgba(0,0,0,0.8);
+			  display:inline-block;
+			  float:left;
+			  width:90%;
 			}
 
 			.scrubber-progress
@@ -105,11 +108,14 @@
 			.playback-controls
 			{
 				font-size:30px;
-	
+				display:inline-block;
+  			  float:left;
+				
 			}
 
 			.playback-controls-container
 			{
+				display:inline-block;
 			  height: 40px;
 				padding-left:10px;
 			  background-color: rgba(0,0,0,0.8);
@@ -169,6 +175,10 @@
 			var gMedia = {};			// All media to display, indexed by chunk id.
 			var gPlaying = false;	// Has playback begun?
 			
+			var gRecognition = null;	// Speech recognition.
+			
+			var gNouns = null;	// All known nouns.
+			
 			//-------------------------------------------------------------------------
 			// Constructor when page loads.
 			//-------------------------------------------------------------------------
@@ -190,9 +200,10 @@
 				gScrubberHandle = document.getElementById("scrubberHandle");
 				
 				gLoadingHeading = document.getElementById("loadingHeading");
-				//gDebug = document.getElementById("debug");
+				gDebug = document.getElementById("debug");
 
 				syncNav();
+				loadNouns();
 			}
 			
 			function syncNav()
@@ -241,6 +252,7 @@
 				gMedia = {};
 				gPlaying = false;
 				gRecommendation.innerHTML = "";
+				gCaption.innerHTML = "";
 			}
 			
 			//-------------------------------------------------------------------------
@@ -253,6 +265,8 @@
 				updateHistory("/");
 
 				reset();
+				
+				listen();
 
 				gImage.style["background-image"] = "";
 
@@ -265,6 +279,20 @@
 				randomBackground();
 			}
 			
+			//-------------------------------------------------------------------------
+			// Loads dictionary of nouns into memory.
+			//-------------------------------------------------------------------------
+			function loadNouns()
+			{
+				var req = new XMLHttpRequest();
+				req.onload = function() {
+					log("loadNouns.onload");
+					gNouns = JSON.parse(this.responseText);
+				}
+				req.open("GET", "/assets/nouns.json", true);
+				req.send();
+			}
+
 			function randomBackground()
 			{
 				var req = new XMLHttpRequest();
@@ -546,11 +574,11 @@
 				{
 					window.speechSynthesis.cancel();
 					// log("onScrub: " + gScrubberHandle.offsetLeft + " " + gScrubberHandle.offsetTop + " " + window.innerWidth);
-				
-					var pct = parseInt((ev.clientX / window.innerWidth)*100);
+					var barWidthPct = 0.9;
+					var pct = parseInt((ev.clientX / (window.innerWidth*barWidthPct))*100);
 					setScrubberPercentage(pct);
 
-					var chunkId = parseInt((ev.clientX / window.innerWidth) * gChunks.length);
+					var chunkId = parseInt((ev.clientX / (window.innerWidth*barWidthPct)) * gChunks.length);
 					showMediaForChunk(chunkId);
 				}
 			}
@@ -569,7 +597,8 @@
 			function setScrubberPercentage(pct)
 			{
 				// log("setScrubberPercentage: " + gCurrChunk + " " + gChunks.length + " " + pct);
-				gScrubberProgress.style["width"] = pct + "%";
+				var barWidthPct = 0.9;
+				gScrubberProgress.style["width"] = pct*barWidthPct + "%";
 			}
 	
 	
@@ -622,7 +651,7 @@
 				{
 					window.speechSynthesis.pause();
 					gPlaying = false;
-					button.setAttribute("class", "glyphicon glyphicon-play playback-controls");
+					button.setAttribute("class", "glyphicon glyphicon-play");
 				}
 				
 				else
@@ -633,7 +662,7 @@
 						playNextChunk();
 					}
 					gPlaying = true;
-					button.setAttribute("class", "glyphicon glyphicon-pause playback-controls");
+					button.setAttribute("class", "glyphicon glyphicon-pause");
 				}
 			}
 	
@@ -689,7 +718,89 @@
 					playNextChunk();
 				}
 			}
-			</script>
+			
+			function listen()
+			{
+				gRecognition = new webkitSpeechRecognition();
+				gRecognition.continuous = true;
+				gRecognition.interimResults = true;
+				gRecognition.onend = function(event) {
+					log("recognition ended!!!");
+				//	listen();
+				}
+				gRecognition.onresult = function(event) { 
+//					log(event);
+					for(var i=event.resultIndex; i<event.results.length; ++i)
+					{
+						var statement = event.results[i][0].transcript;
+						var command = statement.trim();
+						console.log("command: " + command);
+						// special words.
+						switch(command)
+						{
+						case "pause":
+							log("PAUSING");
+							playPause();
+							return;
+
+						case "play":
+							log("PLAYING");
+							playPause();
+							return;
+
+						case "stop":
+							log("STOPPING");
+							doHome();
+							return;
+						}
+						
+						if(event.results[i].isFinal === true)
+						{
+							var words = statement.split(" ");
+							for(var j=0; j<words.length; ++j)
+							{
+								var word = words[j];
+								
+								// Crappy de-pluralization attempt.
+								if(word.endsWith("s"))
+								{
+									var singular = word.substr(0, word.length-1)
+									if(singular in gNouns)
+									{
+										log("found noun " + singular);
+										gRecognition.stop();
+										search(singular);
+										return;
+									}
+								}
+								
+								else if(word.endsWith("es"))
+								{
+									var singular = word.substr(0, word.length-2)
+									if(singular in gNouns)
+									{
+										log("found noun " + singular);
+										gRecognition.stop();
+										search(singular);
+										return;
+									}
+								}
+								
+								if(word in gNouns)
+								{
+									log("found noun " + word);
+									gRecognition.stop();
+									search(word);
+									return;
+								}
+							}
+						}
+					}
+				}
+				gRecognition.start();
+			}
+			
+		</script>
   </head>
 
   <body onload="init()" onmousemove="onScrub(event)" onmouseup="onScrubEnd(event)">
@@ -747,18 +858,20 @@
 				<div class="row caption-container">
 					<span style="font-size:18px">learn more about</span> <span id="caption" article="" onclick="search(this.article)"></span>
 				</div>
-				<div class="row scrubber-bg">
-					<div class="scrubber-progress" id="scrubberProgress"><span id="scrubberHandle" class="glyphicon glyphicon-record" onmousedown="onScrubStart()"></span></div>
+				<div class="row">
+					<div class="playback-controls"><span id="playpause" class="glyphicon glyphicon-pause" onclick="playPause()"></span></div>
+					<div class="scrubber-bg">
+						<div class="scrubber-progress" id="scrubberProgress"><span id="scrubberHandle" class="glyphicon glyphicon-record" onmousedown="onScrubStart()"></span></div>
+					</div>
 				</div>
-
-				<div class="row playback-controls-container">
+				<!-- <div class="row playback-controls-container">
 					<div class="col-md-2 text-left">
 						<span id="playpause" class="glyphicon glyphicon-pause playback-controls" onclick="playPause()"></span>
 					</div>
 					<div class="col-md-10" style="text-align:right">
 						Content from <a href="https://www.wikipedia.org">Wikipedia</a>, the free encyclopedia.
 					</div>
-				</div>
+				</div> -->
 
 			</div>
 		</footer>
