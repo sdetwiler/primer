@@ -298,6 +298,7 @@
 			function search(query)
 			{
 				reset();
+				query = query.replace(" ", "_").replace("%20", "_");
 				
 				updateHistory("/a/" + query);
 
@@ -316,7 +317,6 @@
 					playArticle(json);
 				}
 		
-				var query = query.replace(" ", "_");
 				req.open("GET", "/d/"+query, true);
 				req.send();
 
@@ -403,7 +403,7 @@
 			{
 				var maxLen = 200;
 				var chunks = [];
-				var sentences = text.split(".");
+				var sentences = text.split(". ");
 				for(var si in sentences)
 				{
 					var s = sentences[si];
@@ -489,6 +489,7 @@
 			
 			function showMedia(med)
 			{
+				log(med);
 					switch(med.contentType)
 					{
 						case "image/jpeg":
@@ -520,7 +521,14 @@
 				if(chunkId in gMedia)
 				{
 					log("will showMediaForChunk:" + chunkId);
-					med = gMedia[chunkId][0];
+					if(gMedia[chunkId][0] !== undefined)
+					{
+						med = gMedia[chunkId][0];
+					}
+					else
+					{
+						med = gMedia[chunkId];
+					}
 					console.log(med);
 					showMedia(med);
 					// log(med)
