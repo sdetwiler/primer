@@ -1,9 +1,11 @@
 Primer
 ======================
 
-An extremely rough sketch of a primer backed by Wikipedia.
+Although this is a long way away from the Primer as envisioned by Neal Stephenson, it's an extremely rough sketch of a primer backed by Wikipedia. If you haven't already, go read https://en.wikipedia.org/wiki/The_Diamond_Age
 
-If you haven't already, go read https://en.wikipedia.org/wiki/The_Diamond_Age
+
+A live, running version is available at http//primer.piratestudios.com. This has been tested on Chrome, Safari and iOS.
+
 
 Development Setup for OS X
 ----------------------
