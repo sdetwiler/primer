@@ -265,8 +265,11 @@
 				updateHistory("/");
 
 				reset();
-				
-				listen();
+				var iOS = ( navigator.userAgent.match(/iPad|iPhone|iPod/g) ? true : false );
+				if(!iOS)
+				{
+					listen();
+				}
 
 				gImage.style["background-image"] = "";
 
